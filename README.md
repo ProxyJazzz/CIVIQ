@@ -1,2 +1,3 @@
 # CIVIQ
-AI-powered Hyperlocal Community Intelligence Platform
+
+AI-powered Hyperlocal Community Intelligence Platform.
