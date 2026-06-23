@@ -1,6 +1,7 @@
 'use server'
 
 import { analyzeImage } from '@/lib/ai/analyze-image'
+import { generateEmbedding } from '@/lib/ai/gemini'
 import { saveReport } from '@/lib/supabase/save-report'
 import { uploadImage } from '@/lib/supabase/upload-image'
 import type { PipelineResult, Report, SaveReportInput } from '@/types/report'
@@ -34,7 +35,16 @@ export async function createReport(input: CreateReportInput): Promise<PipelineRe
 
   const analysis = analysisResult.data
 
-  // Step 3 — Save report to database
+  // Step 3 — Generate semantic embedding for duplication & search matching
+  let embedding: number[] | undefined
+  try {
+    const textToEmbed = `Title: ${input.title}\nDescription: ${input.description}`
+    embedding = await generateEmbedding(textToEmbed)
+  } catch (err) {
+    console.error('Embedding generation failed during report creation:', err)
+  }
+
+  // Step 4 — Save report to database
   const saveInput: SaveReportInput = {
     title: input.title,
     description: input.description,
@@ -47,6 +57,9 @@ export async function createReport(input: CreateReportInput): Promise<PipelineRe
     longitude: input.longitude,
     address: input.address,
     userId: input.userId,
+    department: analysis.department,
+    tags: analysis.tags,
+    embedding,
   }
 
   return saveReport(saveInput)

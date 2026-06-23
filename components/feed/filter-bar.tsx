@@ -36,6 +36,12 @@ const STATUSES: Array<{ value: ReportStatus | 'all'; label: string }> = [
   { value: 'resolved', label: 'Resolved' },
 ]
 
+const SORTS: Array<{ value: 'newest' | 'trending' | 'trust'; label: string }> = [
+  { value: 'newest', label: 'Newest' },
+  { value: 'trending', label: 'Trending' },
+  { value: 'trust', label: 'Top Rated' },
+]
+
 function Chip({
   active,
   onClick,
@@ -51,9 +57,7 @@ function Chip({
       onClick={onClick}
       className={cn(
         'relative rounded-full px-3 py-1 text-xs font-medium transition-all duration-200',
-        active
-          ? 'text-white'
-          : 'text-muted-foreground hover:text-foreground',
+        active ? 'text-white' : 'text-muted-foreground hover:text-foreground'
       )}
     >
       {active && (
@@ -70,14 +74,33 @@ function Chip({
 
 export function FilterBar({ filters, onChange }: FilterBarProps) {
   return (
-    <div className="space-y-2 rounded-2xl border border-white/8 bg-white/4 p-4 backdrop-blur">
-      <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-        <SlidersHorizontal className="h-3.5 w-3.5" />
-        Filters
+    <div className="space-y-4 rounded-2xl border border-white/8 bg-white/4 p-4 backdrop-blur">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+          <SlidersHorizontal className="h-3.5 w-3.5" />
+          Filter & Sort Feed
+        </div>
+
+        {/* Sort Pill Selector */}
+        <div className="flex items-center gap-0.5 bg-white/5 rounded-full p-0.5 border border-white/5">
+          {SORTS.map((s) => (
+            <button
+              key={s.value}
+              type="button"
+              onClick={() => onChange({ ...filters, sortBy: s.value })}
+              className={cn(
+                'rounded-full px-3 py-1 text-[10px] font-semibold tracking-wide uppercase transition-all duration-200',
+                filters.sortBy === s.value ? 'bg-blue-600 text-white shadow' : 'text-muted-foreground hover:text-foreground'
+              )}
+            >
+              {s.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {/* Category chips */}
-      <div className="flex flex-wrap gap-1">
+      <div className="flex flex-wrap gap-1 border-t border-white/5 pt-2">
         {CATEGORIES.map((c) => (
           <Chip
             key={c.value}
@@ -89,7 +112,7 @@ export function FilterBar({ filters, onChange }: FilterBarProps) {
         ))}
       </div>
 
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap items-center gap-4 pt-1">
         {/* Severity */}
         <div className="flex items-center gap-1">
           {SEVERITIES.map((s) => (
@@ -102,6 +125,9 @@ export function FilterBar({ filters, onChange }: FilterBarProps) {
             </Chip>
           ))}
         </div>
+
+        {/* Divider */}
+        <div className="hidden sm:block h-4 w-px bg-white/10" />
 
         {/* Status */}
         <div className="flex items-center gap-1">

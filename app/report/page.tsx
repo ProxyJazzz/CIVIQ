@@ -4,6 +4,8 @@ import { redirect } from 'next/navigation'
 import { ReportForm } from '@/components/report/report-form'
 import { createClient } from '@/lib/supabase/server'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: 'Report an Issue',
   description:

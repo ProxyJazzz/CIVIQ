@@ -5,7 +5,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
 import { toast } from 'sonner'
-import { FileWarning } from 'lucide-react'
+import { FileWarning, Loader2, ArrowRight } from 'lucide-react'
 
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -15,6 +15,7 @@ import { ImageUpload } from '@/components/report/image-upload'
 import { LocationPicker } from '@/components/report/location-picker'
 import { SubmitButton } from '@/components/report/submit-button'
 import { useReport } from '@/hooks/use-report'
+import { detectDuplicateReports, type DuplicateMatch } from '@/lib/reports/detect-duplicates'
 import { reportFormInputSchema } from '@/schemas/report-schema'
 import { cn } from '@/lib/utils'
 import type { ReportAnalysis, ReportFormInputValues } from '@/types/report'
@@ -57,6 +58,49 @@ export function ReportForm({ userId }: ReportFormProps) {
     longitude: watch('longitude') ?? '',
     address: watch('address') ?? '',
   }
+
+  const titleValue = watch('title')
+  const descriptionValue = watch('description')
+
+  const [duplicates, setDuplicates] = useState<DuplicateMatch[]>([])
+  const [checkingDuplicates, setCheckingDuplicates] = useState(false)
+
+  useEffect(() => {
+    const lat = parseFloat(locationValue.latitude)
+    const lng = parseFloat(locationValue.longitude)
+    if (
+      isNaN(lat) ||
+      isNaN(lng) ||
+      !titleValue ||
+      titleValue.length < 5 ||
+      !descriptionValue ||
+      descriptionValue.length < 15
+    ) {
+      setDuplicates([])
+      return
+    }
+
+    const timer = setTimeout(async () => {
+      setCheckingDuplicates(true)
+      try {
+        const matches = await detectDuplicateReports(
+          titleValue,
+          descriptionValue,
+          lat,
+          lng,
+          0.7, // 70% semantic match threshold
+          150 // 150 meters radius
+        )
+        setDuplicates(matches)
+      } catch (err) {
+        console.error('Error matching duplicates:', err)
+      } finally {
+        setCheckingDuplicates(false)
+      }
+    }, 800)
+
+    return () => clearTimeout(timer)
+  }, [titleValue, descriptionValue, locationValue.latitude, locationValue.longitude])
 
   // Step progress
   const currentStep = (() => {
@@ -143,6 +187,8 @@ export function ReportForm({ userId }: ReportFormProps) {
           severity: result.severity as ReportAnalysis['severity'],
           summary: result.summary,
           confidence: result.confidence,
+          department: result.department ?? 'Other',
+          tags: result.tags ?? [],
         })
       }
     },
@@ -309,6 +355,52 @@ export function ReportForm({ userId }: ReportFormProps) {
           {/* Right column */}
           <div className="flex flex-col gap-5">
             <AiPreviewCard analysis={analysis} loading={loading} />
+
+            {/* Duplicates scan loader */}
+            {checkingDuplicates && (
+              <div className="flex items-center gap-2 rounded-2xl border border-white/5 bg-white/5 p-4 text-xs text-muted-foreground">
+                <Loader2 className="h-3.5 w-3.5 animate-spin text-blue-500" />
+                Scanning for duplicate reports nearby...
+              </div>
+            )}
+
+            {/* Duplicates warning panel */}
+            {!checkingDuplicates && duplicates.length > 0 && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="rounded-2xl border border-amber-500/25 bg-amber-500/5 p-5 space-y-3"
+              >
+                <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wider text-amber-500">
+                  <FileWarning className="h-4 w-4 shrink-0" />
+                  Potential Duplicates Detected
+                </div>
+                <p className="text-xs text-muted-foreground leading-normal">
+                  Our system detected {duplicates.length} similar issue(s) reported within 150m of your coordinates. Please review them:
+                </p>
+                <div className="divide-y divide-white/5 max-h-48 overflow-y-auto space-y-2">
+                  {duplicates.map((dup) => (
+                    <div key={dup.id} className="pt-2 text-xs">
+                      <div className="flex justify-between items-baseline gap-1">
+                        <span className="font-semibold text-foreground truncate max-w-[180px]">{dup.title}</span>
+                        <span className="text-[10px] text-amber-400 font-semibold shrink-0">
+                          {Math.round(dup.similarity * 100)}% match
+                        </span>
+                      </div>
+                      <p className="text-[10px] text-muted-foreground truncate mt-0.5">{dup.address}</p>
+                      <a
+                        href={`/report/${dup.id}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-[10px] text-blue-400 hover:underline mt-1.5 inline-flex items-center gap-0.5"
+                      >
+                        View Report <ArrowRight className="h-2.5 w-2.5" />
+                      </a>
+                    </div>
+                  ))}
+                </div>
+              </motion.div>
+            )}
 
             {/* Success card */}
             {success && report && (

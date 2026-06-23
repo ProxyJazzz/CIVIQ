@@ -21,7 +21,8 @@ import { CommentList } from '@/components/comments/comment-list'
 import { VoteButton } from '@/components/votes/vote-button'
 import { VerifyButton } from '@/components/verification/verify-button'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useComments } from '@/hooks/use-comments'
+import { useRealtimeComments } from '@/hooks/useRealtimeComments'
+import { useRealtimeVotes } from '@/hooks/useRealtimeVotes'
 import { getReport } from '@/lib/reports/get-report'
 import { calculateTrustScore } from '@/lib/trust-score/calculate-trust-score'
 import { cn } from '@/lib/utils'
@@ -55,8 +56,10 @@ export function ReportDetailClient({ reportId, userId }: ReportDetailClientProps
     queryFn: () => getReport(reportId, userId ?? undefined),
   })
 
+  useRealtimeVotes(reportId, userId)
+
   const { comments, isLoading: commentsLoading, addComment, editComment, removeComment } =
-    useComments(reportId)
+    useRealtimeComments(reportId)
 
   if (isLoading) {
     return (
@@ -86,6 +89,7 @@ export function ReportDetailClient({ reportId, userId }: ReportDetailClientProps
   const trust = calculateTrustScore({
     verifications: report.verification_count,
     votes: report.vote_count,
+    comments: report.comment_count,
     createdAt: report.created_at,
   })
 
@@ -252,12 +256,12 @@ export function ReportDetailClient({ reportId, userId }: ReportDetailClientProps
 
             <div className="space-y-2 text-xs">
               {[
-                { label: 'Votes', value: report.vote_count, weight: '0.3×' },
+                { label: 'Votes', value: report.vote_count, weight: '0.2×' },
                 { label: 'Verifications', value: report.verification_count, weight: '0.5×' },
-                { label: 'Comments', value: report.comment_count, weight: '' },
+                { label: 'Comments', value: report.comment_count, weight: '0.1×' },
               ].map((stat) => (
                 <div key={stat.label} className="flex items-center justify-between text-muted-foreground">
-                  <span>{stat.label}</span>
+                  <span>{stat.label} <span className="text-[10px] text-muted-foreground/60">({stat.weight})</span></span>
                   <span className="font-medium text-foreground">{stat.value}</span>
                 </div>
               ))}

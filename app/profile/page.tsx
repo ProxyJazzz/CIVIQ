@@ -5,6 +5,8 @@ import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert'
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { createClient } from '@/lib/supabase/server'
 
+export const dynamic = 'force-dynamic'
+
 function getInitials(name?: string | null, email?: string | null) {
   const label = name || email || 'CIVIQ'
   return label

@@ -35,6 +35,10 @@ export async function saveReport(input: SaveReportInput): Promise<PipelineResult
         address: values.address,
         user_id: values.userId,
         status: 'pending',
+        department: values.department,
+        tags: values.tags,
+        ai_summary: values.summary,
+        embedding: values.embedding ? `[${values.embedding.join(',')}]` : null,
       })
       .select()
       .single()
