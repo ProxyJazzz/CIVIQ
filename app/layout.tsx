@@ -3,6 +3,7 @@ import { Toaster } from 'sonner'
 
 import { Navbar } from '@/components/layout/navbar'
 import { AuthProvider } from '@/providers/auth-provider'
+import { QueryProvider } from '@/providers/query-provider'
 import { ThemeProvider } from '@/providers/theme-provider'
 import './globals.css'
 
@@ -23,24 +24,26 @@ export default function RootLayout({ children }: RootLayoutProps) {
     <html lang="en" suppressHydrationWarning>
       <body className="min-h-screen bg-background font-sans antialiased">
         <ThemeProvider>
-          <AuthProvider>
-            <div className="flex min-h-screen flex-col">
-              <Navbar />
+          <QueryProvider>
+            <AuthProvider>
+              <div className="flex min-h-screen flex-col">
+                <Navbar />
 
-              <main className="flex-1">
-                <div className="container py-10">{children}</div>
-              </main>
+                <main className="flex-1">
+                  <div className="container py-10">{children}</div>
+                </main>
 
-              <footer className="border-t bg-background">
-                <div className="container flex h-16 items-center justify-between text-sm text-muted-foreground">
-                  <span>CIVIQ</span>
-                  <span>Identity layer</span>
-                </div>
-              </footer>
-            </div>
+                <footer className="border-t bg-background">
+                  <div className="container flex h-16 items-center justify-between text-sm text-muted-foreground">
+                    <span>CIVIQ</span>
+                    <span>Identity layer</span>
+                  </div>
+                </footer>
+              </div>
 
-            <Toaster richColors position="bottom-right" />
-          </AuthProvider>
+              <Toaster richColors position="bottom-right" />
+            </AuthProvider>
+          </QueryProvider>
         </ThemeProvider>
       </body>
     </html>

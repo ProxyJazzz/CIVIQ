@@ -1,240 +1,360 @@
 'use client'
 
-import Image from 'next/image'
-import { useActionState, useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import { useForm } from 'react-hook-form'
+import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
-import { CheckCircledIcon, Cross2Icon, ImageIcon, ReloadIcon } from '@radix-ui/react-icons'
 import { toast } from 'sonner'
+import { FileWarning } from 'lucide-react'
 
-import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Progress } from '@/components/ui/progress'
-import { Skeleton } from '@/components/ui/skeleton'
 import { Textarea } from '@/components/ui/textarea'
-import { createReportAction } from '@/services/report-service'
-import type { ReportActionState } from '@/types/report'
+import { AiPreviewCard } from '@/components/report/ai-preview-card'
+import { ImageUpload } from '@/components/report/image-upload'
+import { LocationPicker } from '@/components/report/location-picker'
+import { SubmitButton } from '@/components/report/submit-button'
+import { useReport } from '@/hooks/use-report'
+import { reportFormInputSchema } from '@/schemas/report-schema'
+import { cn } from '@/lib/utils'
+import type { ReportAnalysis, ReportFormInputValues } from '@/types/report'
 
-const initialState: ReportActionState = {
-  status: 'idle',
+interface ReportFormProps {
+  userId: string
 }
 
-const steps = ['Upload', 'Analyze', 'Submit']
+const STEPS = ['Upload Image', 'Fill Details', 'AI Analysis', 'Submit']
 
-export function ReportForm() {
-  const formRef = useRef<HTMLFormElement>(null)
-  const fileInputRef = useRef<HTMLInputElement>(null)
-  const [state, formAction, pending] = useActionState(createReportAction, initialState)
+export function ReportForm({ userId }: ReportFormProps) {
+  const { loading, error, success, report, submitReport, reset } = useReport()
+
+  const [imageFile, setImageFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
-  const [fileName, setFileName] = useState<string | null>(null)
+  const [imageError, setImageError] = useState<string | null>(null)
+  const [analysis, setAnalysis] = useState<ReportAnalysis | null>(null)
+  const prevPreviewUrl = useRef<string | null>(null)
 
-  const progress = useMemo(() => {
-    if (pending) {
-      return 68
-    }
+  const {
+    register,
+    handleSubmit,
+    watch,
+    setValue,
+    reset: resetForm,
+    formState: { errors },
+  } = useForm<ReportFormInputValues>({
+    resolver: zodResolver(reportFormInputSchema),
+    defaultValues: {
+      title: '',
+      description: '',
+      latitude: '',
+      longitude: '',
+      address: '',
+    },
+  })
 
-    if (state.status === 'success') {
-      return 100
-    }
+  const locationValue = {
+    latitude: watch('latitude') ?? '',
+    longitude: watch('longitude') ?? '',
+    address: watch('address') ?? '',
+  }
 
-    if (previewUrl) {
-      return 28
-    }
-
+  // Step progress
+  const currentStep = (() => {
+    if (success) return 3
+    if (loading) return 2
+    if (imageFile) return 1
     return 0
-  }, [pending, previewUrl, state.status])
+  })()
 
+  // Revoke previous blob URL
   useEffect(() => {
-    if (state.status === 'success') {
-      toast.success('Report submitted', {
-        description: state.message,
-      })
-      formRef.current?.reset()
-      setPreviewUrl(null)
-      setFileName(null)
-    }
+    const prev = prevPreviewUrl.current
 
-    if (state.status === 'error') {
-      toast.error('Report failed', {
-        description: state.message,
-      })
-    }
-  }, [state])
-
-  useEffect(() => {
     return () => {
-      if (previewUrl) {
-        URL.revokeObjectURL(previewUrl)
-      }
+      if (prev) URL.revokeObjectURL(prev)
     }
   }, [previewUrl])
 
-  function handleImageChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0]
+  // Toast on state change
+  useEffect(() => {
+    if (success && report) {
+      toast.success('Report submitted!', {
+        description: `Report #${report.id.slice(0, 8)} is now pending review.`,
+      })
+    }
+  }, [success, report])
 
-    if (!file) {
+  useEffect(() => {
+    if (error) {
+      toast.error('Submission failed', { description: error })
+    }
+  }, [error])
+
+  const handleImageChange = useCallback((file: File | null) => {
+    if (prevPreviewUrl.current) {
+      URL.revokeObjectURL(prevPreviewUrl.current)
+    }
+
+    setImageFile(file)
+    setImageError(null)
+
+    if (file) {
+      const url = URL.createObjectURL(file)
+      prevPreviewUrl.current = url
+      setPreviewUrl(url)
+    } else {
+      prevPreviewUrl.current = null
       setPreviewUrl(null)
-      setFileName(null)
-      return
     }
+  }, [])
 
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl)
-    }
+  const handleLocationChange = useCallback(
+    (loc: { latitude: string; longitude: string; address: string }) => {
+      setValue('latitude', loc.latitude, { shouldValidate: true })
+      setValue('longitude', loc.longitude, { shouldValidate: true })
+      setValue('address', loc.address, { shouldValidate: true })
+    },
+    [setValue],
+  )
 
-    const objectUrl = URL.createObjectURL(file)
-    setPreviewUrl(objectUrl)
-    setFileName(file.name)
-  }
+  const onSubmit = useCallback(
+    async (values: ReportFormInputValues): Promise<void> => {
+      if (!imageFile) {
+        setImageError('Please upload an issue image.')
+        return
+      }
 
-  function clearImage() {
-    if (fileInputRef.current) {
-      fileInputRef.current.value = ''
-    }
-    if (previewUrl) {
-      URL.revokeObjectURL(previewUrl)
-    }
+      setAnalysis(null)
+
+      const result = await submitReport({
+        file: imageFile,
+        title: values.title,
+        description: values.description,
+        latitude: parseFloat(values.latitude),
+        longitude: parseFloat(values.longitude),
+        address: values.address,
+        userId,
+      })
+
+      if (result) {
+        // Show AI analysis in card from the saved report
+        setAnalysis({
+          category: result.category as ReportAnalysis['category'],
+          severity: result.severity as ReportAnalysis['severity'],
+          summary: result.summary,
+          confidence: result.confidence,
+        })
+      }
+    },
+    [imageFile, submitReport, userId],
+  )
+
+  function handleReset() {
+    reset()
+    resetForm()
+    setImageFile(null)
     setPreviewUrl(null)
-    setFileName(null)
+    setImageError(null)
+    setAnalysis(null)
   }
 
   return (
-    <motion.form
-      ref={formRef}
-      action={formAction}
-      initial={{ opacity: 0, y: 18 }}
+    <motion.div
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, ease: 'easeOut' }}
-      className="grid gap-6 rounded-2xl border bg-card/90 p-5 shadow-xl shadow-black/5 backdrop-blur md:p-8"
+      transition={{ duration: 0.5, ease: 'easeOut' }}
+      className="space-y-6"
     >
-      <div className="space-y-3">
-        <div className="flex items-center justify-between gap-4">
-          <div>
-            <h1 className="text-3xl font-semibold tracking-tight">Report an issue</h1>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Upload a photo and CIVIQ will classify the civic issue before submission.
-            </p>
-          </div>
-          {state.status === 'success' ? <CheckCircledIcon className="h-7 w-7 text-emerald-500" /> : null}
-        </div>
-
-        <Progress value={progress} aria-label="Report submission progress" />
-        <div className="grid grid-cols-3 gap-2 text-xs text-muted-foreground">
-          {steps.map((step) => (
-            <span key={step}>{step}</span>
-          ))}
-        </div>
+      {/* ─── Header ─────────────────────────────────────────────── */}
+      <div className="space-y-1">
+        <h1 className="text-3xl font-bold tracking-tight">Report Community Issue</h1>
+        <p className="text-sm text-muted-foreground">
+          Upload a photo — Gemini Vision will classify the issue automatically.
+        </p>
       </div>
 
-      <div className="grid gap-5 lg:grid-cols-[1fr_0.9fr]">
-        <div className="space-y-5">
-          <div className="grid gap-2">
-            <Label htmlFor="title">Title</Label>
-            <Input id="title" name="title" placeholder="Large pothole near main gate" required />
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="description">Description</Label>
-            <Textarea
-              id="description"
-              name="description"
-              placeholder="Describe what happened, nearby landmarks, and urgency."
-              className="min-h-32 resize-none"
-              required
-            />
-          </div>
-
-          <div className="grid gap-4 sm:grid-cols-2">
-            <div className="grid gap-2">
-              <Label htmlFor="latitude">Location latitude</Label>
-              <Input id="latitude" name="latitude" type="number" step="any" placeholder="28.6139" required />
-            </div>
-            <div className="grid gap-2">
-              <Label htmlFor="longitude">Location longitude</Label>
-              <Input id="longitude" name="longitude" type="number" step="any" placeholder="77.2090" required />
-            </div>
-          </div>
-
-          <div className="grid gap-2">
-            <Label htmlFor="address">Address</Label>
-            <Input id="address" name="address" placeholder="Block, street, area, city" required />
-          </div>
-        </div>
-
-        <div className="space-y-4">
-          <div className="grid gap-2">
-            <Label htmlFor="image">Image upload</Label>
-            <Input
-              ref={fileInputRef}
-              id="image"
-              name="image"
-              type="file"
-              accept="image/png,image/jpeg,image/webp"
-              onChange={handleImageChange}
-              required
-            />
-          </div>
-
-          <div className="relative overflow-hidden rounded-xl border bg-muted/40">
-            {previewUrl ? (
-              <>
-                <div className="relative aspect-[4/3]">
-                  <Image src={previewUrl} alt="Uploaded issue preview" fill className="object-cover" unoptimized />
-                </div>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="icon"
-                  className="absolute right-3 top-3"
-                  onClick={clearImage}
-                  aria-label="Remove image"
-                >
-                  <Cross2Icon className="h-4 w-4" />
-                </Button>
-              </>
-            ) : pending ? (
-              <div className="space-y-3 p-4">
-                <Skeleton className="aspect-[4/3] w-full rounded-lg" />
-                <Skeleton className="h-4 w-2/3" />
+      {/* ─── Progress Steps ─────────────────────────────────────── */}
+      <div className="flex items-center gap-0">
+        {STEPS.map((step, i) => (
+          <div key={step} className="flex flex-1 items-center">
+            <div className="flex flex-col items-center gap-1">
+              <div
+                className={cn(
+                  'flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-all duration-300',
+                  i <= currentStep
+                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40'
+                    : 'bg-white/10 text-muted-foreground',
+                )}
+              >
+                {i + 1}
               </div>
-            ) : (
-              <div className="flex aspect-[4/3] flex-col items-center justify-center gap-3 p-8 text-center text-muted-foreground">
-                <ImageIcon className="h-10 w-10" />
-                <p className="text-sm">Preview appears after image upload.</p>
-              </div>
+              <span
+                className={cn(
+                  'hidden text-[10px] transition-colors sm:block',
+                  i <= currentStep ? 'text-blue-400' : 'text-muted-foreground/50',
+                )}
+              >
+                {step}
+              </span>
+            </div>
+            {i < STEPS.length - 1 && (
+              <div
+                className={cn(
+                  'mb-4 h-px flex-1 transition-colors duration-500',
+                  i < currentStep ? 'bg-blue-600/60' : 'bg-white/10',
+                )}
+              />
             )}
           </div>
-
-          {fileName ? <p className="truncate text-xs text-muted-foreground">{fileName}</p> : null}
-        </div>
+        ))}
       </div>
 
-      {state.status === 'error' ? (
-        <div className="rounded-lg border border-destructive/35 bg-destructive/10 p-4 text-sm text-destructive">
-          <div className="font-medium">Submission needs attention</div>
-          <p className="mt-1">{state.message}</p>
-        </div>
-      ) : null}
+      {/* ─── Main Form ──────────────────────────────────────────── */}
+      <form onSubmit={handleSubmit(onSubmit)} noValidate>
+        <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
+          {/* Left column */}
+          <div className="space-y-5">
+            {/* Image Upload Section */}
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur">
+              <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                Issue Photo
+              </p>
+              <ImageUpload
+                value={imageFile}
+                onChange={handleImageChange}
+                previewUrl={previewUrl}
+                disabled={loading || success}
+                error={imageError ?? undefined}
+              />
+            </div>
 
-      {state.status === 'success' ? (
-        <div className="rounded-lg border border-emerald-500/35 bg-emerald-500/10 p-4 text-sm text-emerald-700 dark:text-emerald-300">
-          <div className="font-medium">AI analysis complete</div>
-          <p className="mt-1">Report ID: {state.reportId}</p>
-        </div>
-      ) : null}
+            {/* Details Section */}
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur">
+              <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                Issue Details
+              </p>
 
-      <div className="flex flex-col-reverse gap-3 sm:flex-row sm:items-center sm:justify-end">
-        {state.status === 'error' ? (
-          <Button type="submit" variant="outline" disabled={pending}>
-            {pending ? <ReloadIcon className="mr-2 h-4 w-4 animate-spin" /> : null}
-            Retry
-          </Button>
-        ) : null}
-        <Button type="submit" disabled={pending} className="min-w-36">
-          {pending ? <ReloadIcon className="mr-2 h-4 w-4 animate-spin" /> : null}
-          {pending ? 'Analyzing...' : 'Submit report'}
-        </Button>
-      </div>
-    </motion.form>
+              <div className="space-y-4">
+                {/* Title */}
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="title"
+                    className={cn('text-sm', errors.title && 'text-red-400')}
+                  >
+                    Title
+                  </Label>
+                  <Input
+                    id="title"
+                    placeholder="Large pothole near main gate"
+                    disabled={loading || success}
+                    aria-invalid={!!errors.title}
+                    className={cn(
+                      'bg-white/5',
+                      errors.title && 'border-red-500/50 focus-visible:ring-red-500/30',
+                    )}
+                    {...register('title')}
+                  />
+                  {errors.title && (
+                    <p className="flex items-center gap-1 text-xs text-red-400">
+                      <FileWarning className="h-3 w-3" />
+                      {errors.title.message}
+                    </p>
+                  )}
+                </div>
+
+                {/* Description */}
+                <div className="space-y-1.5">
+                  <Label
+                    htmlFor="description"
+                    className={cn('text-sm', errors.description && 'text-red-400')}
+                  >
+                    Description
+                  </Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Describe what happened, nearby landmarks, and urgency."
+                    className={cn(
+                      'min-h-28 resize-none bg-white/5',
+                      errors.description && 'border-red-500/50 focus-visible:ring-red-500/30',
+                    )}
+                    disabled={loading || success}
+                    aria-invalid={!!errors.description}
+                    {...register('description')}
+                  />
+                  {errors.description && (
+                    <p className="flex items-center gap-1 text-xs text-red-400">
+                      <FileWarning className="h-3 w-3" />
+                      {errors.description.message}
+                    </p>
+                  )}
+                </div>
+              </div>
+            </div>
+
+            {/* Location Section */}
+            <div className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur">
+              <LocationPicker
+                value={locationValue}
+                onChange={handleLocationChange}
+                errors={{
+                  latitude: errors.latitude?.message,
+                  longitude: errors.longitude?.message,
+                  address: errors.address?.message,
+                }}
+                disabled={loading || success}
+              />
+            </div>
+          </div>
+
+          {/* Right column */}
+          <div className="flex flex-col gap-5">
+            <AiPreviewCard analysis={analysis} loading={loading} />
+
+            {/* Success card */}
+            {success && report && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 p-5"
+              >
+                <p className="text-sm font-semibold text-emerald-400">Report submitted!</p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  ID:{' '}
+                  <span className="font-mono text-emerald-300/80">{report.id.slice(0, 16)}…</span>
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">Status: pending review</p>
+              </motion.div>
+            )}
+
+            {/* Error card */}
+            {error && !loading && (
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                className="rounded-2xl border border-red-500/30 bg-red-500/10 p-5"
+              >
+                <p className="text-sm font-semibold text-red-400">Submission failed</p>
+                <p className="mt-1 text-xs text-muted-foreground">{error}</p>
+              </motion.div>
+            )}
+          </div>
+        </div>
+
+        {/* ─── Submit Row ─────────────────────────────────────── */}
+        <div className="mt-6 flex flex-col-reverse items-center gap-3 sm:flex-row sm:justify-end">
+          {success && (
+            <button
+              type="button"
+              onClick={handleReset}
+              className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
+            >
+              Submit another report
+            </button>
+          )}
+
+          <SubmitButton loading={loading} success={success} disabled={loading || success} />
+        </div>
+      </form>
+    </motion.div>
   )
 }

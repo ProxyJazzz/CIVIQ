@@ -6,7 +6,7 @@ const responseSchema = {
   properties: {
     category: {
       type: 'string',
-      enum: ['Pothole', 'Garbage', 'Water Leakage', 'Streetlight', 'Traffic', 'Other'],
+      enum: ['Pothole', 'Garbage', 'Water Leakage', 'Streetlight', 'Road Damage', 'Drainage', 'Other'],
     },
     severity: {
       type: 'string',

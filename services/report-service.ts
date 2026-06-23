@@ -56,7 +56,7 @@ export async function createReportAction(
     })
     const image = getRequiredFile(formData)
     const analysis = await analyzeReportImage(image, values.description)
-    const extension = image.name.split('.').pop()?.toLowerCase() || 'jpg'
+    const extension = image.name.split('.').pop()?.toLowerCase() ?? 'jpg'
     const imagePath = `${user.id}/${crypto.randomUUID()}.${extension}`
 
     const { error: uploadError } = await supabase.storage.from('report-images').upload(imagePath, image, {
@@ -69,13 +69,16 @@ export async function createReportAction(
       throw new Error(uploadError.message)
     }
 
+    const { data: publicUrlData } = supabase.storage.from('report-images').getPublicUrl(imagePath)
+    const imageUrl = publicUrlData.publicUrl
+
     const { data: report, error: insertError } = await supabase
       .from('reports')
       .insert({
         user_id: user.id,
         title: values.title,
         description: values.description,
-        image_url: imagePath,
+        image_url: imageUrl,
         category: analysis.category,
         severity: analysis.severity,
         confidence: analysis.confidence,

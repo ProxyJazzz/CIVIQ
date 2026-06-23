@@ -1,8 +1,9 @@
 'use client'
 
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
+import { usePathname, useRouter } from 'next/navigation'
 import { ExitIcon, PersonIcon } from '@radix-ui/react-icons'
+import { Map, Radio } from 'lucide-react'
 
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar'
 import { Button } from '@/components/ui/button'
@@ -28,6 +29,7 @@ function getInitials(name?: string | null, email?: string | null) {
 
 export function Navbar() {
   const router = useRouter()
+  const pathname = usePathname()
   const { user, loading, signOut } = useAuth()
   const fullName = user?.user_metadata.full_name as string | undefined
   const avatarUrl = user?.user_metadata.avatar_url as string | undefined
@@ -44,6 +46,27 @@ export function Navbar() {
         <Link href="/" className="text-lg font-semibold tracking-tight">
           CIVIQ
         </Link>
+
+        <div className="flex items-center gap-1">
+          <Link
+            href="/feed"
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+              pathname.startsWith('/feed') ? 'bg-white/10 text-foreground' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Radio className="h-3.5 w-3.5" />
+            Feed
+          </Link>
+          <Link
+            href="/map"
+            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
+              pathname.startsWith('/map') ? 'bg-white/10 text-foreground' : 'text-muted-foreground hover:text-foreground'
+            }`}
+          >
+            <Map className="h-3.5 w-3.5" />
+            Map
+          </Link>
+        </div>
 
         <nav aria-label="Primary navigation" className="flex items-center gap-2">
           {loading ? (
