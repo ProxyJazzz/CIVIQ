@@ -10,6 +10,8 @@ export interface ReportWithStats extends Report {
   vote_count: number
   comment_count: number
   verification_count: number
+  trust_score: number
+  trending_score: number
   /** Whether the requesting user has voted (null when not authenticated) */
   user_has_voted: boolean
   /** Whether the requesting user has verified (null when not authenticated) */
@@ -40,16 +42,35 @@ export type ReportCategory =
 
 export type ReportSeverity = 'Low' | 'Medium' | 'High'
 
-export type ReportStatus = 'pending' | 'in_progress' | 'resolved'
+export type ReportStatus = 'pending' | 'assigned' | 'in_progress' | 'resolved' | 'dismissed'
+
+export type Department = Database['public']['Tables']['departments']['Row']
+export type ReportEvent = Database['public']['Tables']['report_events']['Row']
+export type AdminNote = Database['public']['Tables']['admin_notes']['Row']
+export type Notification = Database['public']['Tables']['notifications']['Row']
+export type LeaderboardUser = Database['public']['Views']['user_leaderboard']['Row']
 
 export interface FeedFilters {
   category: ReportCategory | 'all'
   severity: ReportSeverity | 'all'
   status: ReportStatus | 'all'
   search: string
+  sortBy?: 'newest' | 'trending' | 'trust'
 }
 
 export interface FeedPage {
   reports: ReportWithStats[]
   nextCursor: string | null
 }
+
+export type Announcement = Database['public']['Tables']['announcements']['Row']
+export type UserPresence = Database['public']['Tables']['user_presence']['Row']
+
+export interface ActivePresence {
+  user_id: string
+  status: 'online' | 'offline' | 'away'
+  last_seen_at: string
+  full_name?: string | null
+  avatar_url?: string | null
+}
+

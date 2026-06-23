@@ -3,6 +3,8 @@ import type { Metadata } from 'next'
 import { FeedClient } from '@/components/feed/feed-client'
 import { createClient } from '@/lib/supabase/server'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: 'Community Feed',
   description: 'Browse and search civic issues reported by your community — filtered by category, severity, and status.',

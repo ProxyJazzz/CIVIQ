@@ -1,5 +1,6 @@
 'use server'
 
+import { SchemaType } from '@google/generative-ai'
 import { reportAnalysisSchema } from '@/schemas/report-schema'
 import type { PipelineResult, ReportAnalysis } from '@/types/report'
 
@@ -10,57 +11,22 @@ const fallbackAnalysis: ReportAnalysis = {
   severity: 'Low',
   summary: 'Unable to confidently analyze the civic issue from the uploaded image.',
   confidence: 0,
+  department: 'Other',
+  tags: ['other'],
 }
 
 function buildPrompt(optionalDescription?: string) {
   return [
-    'Analyze the uploaded image and determine:',
+    'Analyze the uploaded image of a hyperlocal civic issue and determine:',
+    '1. The most appropriate category.',
+    '2. The severity of the issue.',
+    '3. A concise, professional summary for operations teams.',
+    '4. Your analysis confidence level (0.0 to 1.0).',
+    '5. The municipal department best suited to handle this (e.g. Public Works, Sanitation, Water & Sewer, Traffic & Safety, Electricity).',
+    '6. An array of relevant tags describing the issue (e.g. ["hazard", "pothole", "safety"]).',
     '',
-    '1. category',
-    '',
-    'Allowed values:',
-    'Pothole',
-    'Garbage',
-    'Water Leakage',
-    'Streetlight',
-    'Road Damage',
-    'Drainage',
-    'Other',
-    '',
-    '2. severity',
-    '',
-    'Low',
-    'Medium',
-    'High',
-    '',
-    '3. summary',
-    '',
-    'Short professional description.',
-    '',
-    '4. confidence',
-    '',
-    '0 to 1.',
-    '',
-    optionalDescription ? `User description: ${optionalDescription}` : 'No user description provided.',
-    '',
-    'Return STRICT JSON ONLY.',
-    'No markdown.',
-    'No explanations.',
+    optionalDescription ? `User description context: ${optionalDescription}` : 'No user description context provided.',
   ].join('\n')
-}
-
-function extractJson(text: string) {
-  const trimmed = text.trim()
-  const fencedMatch = trimmed.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)
-  const candidate = fencedMatch?.[1] ?? trimmed
-  const start = candidate.indexOf('{')
-  const end = candidate.lastIndexOf('}')
-
-  if (start === -1 || end === -1 || end <= start) {
-    return null
-  }
-
-  return candidate.slice(start, end + 1)
 }
 
 async function imageUrlToInlineData(imageUrl: string) {
@@ -88,21 +54,73 @@ export async function analyzeImage(
   try {
     const model = getGeminiModel()
     const imagePart = await imageUrlToInlineData(imageUrl)
-    const response = await model.generateContent([buildPrompt(optionalDescription), imagePart])
-    const text = response.response.text()
-    const json = extractJson(text)
 
-    if (!json) {
+    const response = await model.generateContent({
+      contents: [
+        {
+          role: 'user',
+          parts: [
+            { text: buildPrompt(optionalDescription) },
+            {
+              inlineData: {
+                data: imagePart.inlineData.data,
+                mimeType: imagePart.inlineData.mimeType,
+              },
+            },
+          ],
+        },
+      ],
+      generationConfig: {
+        responseMimeType: 'application/json',
+        responseSchema: {
+          type: SchemaType.OBJECT,
+          properties: {
+            category: {
+              type: SchemaType.STRING,
+              format: 'enum',
+              enum: ['Pothole', 'Garbage', 'Water Leakage', 'Streetlight', 'Road Damage', 'Drainage', 'Other'],
+            },
+            severity: {
+              type: SchemaType.STRING,
+              format: 'enum',
+              enum: ['Low', 'Medium', 'High'],
+            },
+            confidence: {
+              type: SchemaType.NUMBER,
+              description: 'Confidence score from 0.0 to 1.0.',
+            },
+            summary: {
+              type: SchemaType.STRING,
+              description: 'Concise civic issue summary for operations teams.',
+            },
+            department: {
+              type: SchemaType.STRING,
+              description: 'Responsible municipal department.',
+            },
+            tags: {
+              type: SchemaType.ARRAY,
+              items: { type: SchemaType.STRING },
+              description: 'List of relevant keywords/tags.',
+            },
+          },
+          required: ['category', 'severity', 'confidence', 'summary', 'department', 'tags'],
+        },
+      },
+    })
+
+    const text = response.response.text()
+    if (!text) {
       return {
         success: true,
         data: fallbackAnalysis,
       }
     }
 
-    const parsedJson: unknown = JSON.parse(json)
+    const parsedJson: unknown = JSON.parse(text)
     const parsedAnalysis = reportAnalysisSchema.safeParse(parsedJson)
 
     if (!parsedAnalysis.success) {
+      console.warn('Gemini response did not match Zod schema:', parsedAnalysis.error)
       return {
         success: true,
         data: fallbackAnalysis,
@@ -114,6 +132,7 @@ export async function analyzeImage(
       data: parsedAnalysis.data,
     }
   } catch (error) {
+    console.error('AI analysis error:', error)
     return {
       success: false,
       error: {

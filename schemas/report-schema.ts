@@ -17,6 +17,8 @@ export const reportAnalysisSchema = z.object({
   severity: z.enum(reportSeverities),
   summary: z.string().trim().min(1).max(500),
   confidence: z.number().min(0).max(1),
+  department: z.string().trim().min(1),
+  tags: z.array(z.string().trim().min(1)).min(1),
 })
 
 export const reportLocationSchema = z.object({
@@ -63,4 +65,7 @@ export const saveReportSchema = reportFormSchema.extend({
   severity: z.enum(reportSeverities),
   summary: z.string().trim().min(1).max(500),
   confidence: z.number().min(0).max(1),
+  department: z.string().trim().min(1),
+  tags: z.array(z.string().trim().min(1)).min(1),
+  embedding: z.array(z.number()).optional(),
 })

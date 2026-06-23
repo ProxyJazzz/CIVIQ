@@ -8,7 +8,9 @@ import { FilterBar } from '@/components/feed/filter-bar'
 import { ReportCard } from '@/components/feed/report-card'
 import { SearchBar } from '@/components/feed/search-bar'
 import { Skeleton } from '@/components/ui/skeleton'
-import { useReports } from '@/hooks/use-reports'
+import { useRealtimeFeed } from '@/hooks/useRealtimeFeed'
+import { usePresence } from '@/hooks/usePresence'
+import { OnlineUsersWidget } from '@/components/presence/online-users-widget'
 import type { FeedFilters } from '@/types/community'
 
 const DEFAULT_FILTERS: FeedFilters = {
@@ -16,6 +18,7 @@ const DEFAULT_FILTERS: FeedFilters = {
   severity: 'all',
   status: 'all',
   search: '',
+  sortBy: 'newest',
 }
 
 interface FeedClientProps {
@@ -44,10 +47,12 @@ export function FeedClient({ userId }: FeedClientProps) {
   const [filters, setFilters] = useState<FeedFilters>(DEFAULT_FILTERS)
   const observerRef = useRef<IntersectionObserver | null>(null)
 
-  const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage } = useReports({
+  const { data, isLoading, isError, fetchNextPage, hasNextPage, isFetchingNextPage } = useRealtimeFeed({
     filters,
     userId: userId ?? undefined,
   })
+
+  const { onlineUsers } = usePresence(userId, null)
 
   const reports = data?.pages.flatMap((p) => p.reports) ?? []
 
@@ -75,62 +80,70 @@ export function FeedClient({ userId }: FeedClientProps) {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Search */}
-      <SearchBar value={filters.search} onChange={handleSearchChange} />
+    <div className="grid gap-6 lg:grid-cols-12 items-start">
+      {/* Main Feed Area */}
+      <div className="lg:col-span-8 space-y-6">
+        {/* Search */}
+        <SearchBar value={filters.search} onChange={handleSearchChange} />
 
-      {/* Filters */}
-      <FilterBar filters={filters} onChange={setFilters} />
+        {/* Filters */}
+        <FilterBar filters={filters} onChange={setFilters} />
 
-      {/* Grid */}
-      {isLoading ? (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {Array.from({ length: 6 }).map((_, i) => (
-            <ReportCardSkeleton key={i} />
-          ))}
-        </div>
-      ) : isError ? (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="flex flex-col items-center gap-3 py-20 text-center"
-        >
-          <AlertCircle className="h-10 w-10 text-red-400/70" />
-          <p className="text-sm text-muted-foreground">Failed to load reports. Please refresh.</p>
-        </motion.div>
-      ) : reports.length === 0 ? (
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          className="flex flex-col items-center gap-3 py-20 text-center"
-        >
-          <Radio className="h-10 w-10 text-muted-foreground/40" />
-          <p className="text-sm text-muted-foreground">No reports match your filters.</p>
-        </motion.div>
-      ) : (
-        <>
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-            {reports.map((report, i) => (
-              <ReportCard key={report.id} report={report} index={i} />
+        {/* Grid */}
+        {isLoading ? (
+          <div className="grid gap-4 sm:grid-cols-2">
+            {Array.from({ length: 4 }).map((_, i) => (
+              <ReportCardSkeleton key={i} />
             ))}
           </div>
-
-          {/* Infinite scroll sentinel */}
-          <div ref={sentinelRef} className="h-4" />
-
-          {isFetchingNextPage && (
-            <div className="flex justify-center py-4">
-              <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+        ) : isError ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex flex-col items-center gap-3 py-20 text-center"
+          >
+            <AlertCircle className="h-10 w-10 text-red-400/70" />
+            <p className="text-sm text-muted-foreground">Failed to load reports. Please refresh.</p>
+          </motion.div>
+        ) : reports.length === 0 ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            className="flex flex-col items-center gap-3 py-20 text-center"
+          >
+            <Radio className="h-10 w-10 text-muted-foreground/40" />
+            <p className="text-sm text-muted-foreground">No reports match your filters.</p>
+          </motion.div>
+        ) : (
+          <>
+            <div className="grid gap-4 sm:grid-cols-2">
+              {reports.map((report, i) => (
+                <ReportCard key={report.id} report={report} index={i} />
+              ))}
             </div>
-          )}
 
-          {!hasNextPage && reports.length > 0 && (
-            <p className="py-4 text-center text-xs text-muted-foreground">
-              All {reports.length} reports loaded.
-            </p>
-          )}
-        </>
-      )}
+            {/* Infinite scroll sentinel */}
+            <div ref={sentinelRef} className="h-4" />
+
+            {isFetchingNextPage && (
+              <div className="flex justify-center py-4">
+                <Loader2 className="h-5 w-5 animate-spin text-muted-foreground" />
+              </div>
+            )}
+
+            {!hasNextPage && reports.length > 0 && (
+              <p className="py-4 text-center text-xs text-muted-foreground">
+                All {reports.length} reports loaded.
+              </p>
+            )}
+          </>
+        )}
+      </div>
+
+      {/* Sidebar Area */}
+      <div className="lg:col-span-4 lg:sticky lg:top-20 space-y-6">
+        <OnlineUsersWidget onlineUsers={onlineUsers} currentUserId={userId} />
+      </div>
     </div>
   )
 }

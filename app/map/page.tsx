@@ -3,6 +3,8 @@ import type { Metadata } from 'next'
 import { MapClient } from '@/components/map/map-client'
 import { createClient } from '@/lib/supabase/server'
 
+export const dynamic = 'force-dynamic'
+
 export const metadata: Metadata = {
   title: 'Issue Map',
   description: 'View civic issues on an interactive map with severity-coded markers and trust score popups.',

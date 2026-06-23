@@ -38,6 +38,7 @@ export function ReportCard({ report, index = 0 }: ReportCardProps) {
   const trust = calculateTrustScore({
     verifications: report.verification_count,
     votes: report.vote_count,
+    comments: report.comment_count,
     createdAt: report.created_at,
   })
 

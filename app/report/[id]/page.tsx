@@ -3,6 +3,8 @@ import type { Metadata } from 'next'
 import { ReportDetailClient } from '@/components/report/report-detail-client'
 import { createClient } from '@/lib/supabase/server'
 
+export const dynamic = 'force-dynamic'
+
 interface ReportPageProps {
   params: Promise<{ id: string }>
 }

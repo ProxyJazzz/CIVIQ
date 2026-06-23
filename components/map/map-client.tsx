@@ -1,10 +1,11 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Layers, AlertCircle } from 'lucide-react'
 
 import { MapView } from '@/components/map/map-view'
-import { useReports } from '@/hooks/use-reports'
+import { useRealtimeFeed } from '@/hooks/useRealtimeFeed'
+import { detectHotspots, type Hotspot } from '@/lib/realtime/detect-hotspots'
 import { Skeleton } from '@/components/ui/skeleton'
 import { cn } from '@/lib/utils'
 import type { FeedFilters, ReportSeverity } from '@/types/community'
@@ -29,18 +30,31 @@ interface MapClientProps {
 
 export function MapClient({ userId }: MapClientProps) {
   const [severity, setSeverity] = useState<ReportSeverity | 'all'>('all')
+  const [hotspots, setHotspots] = useState<Hotspot[]>([])
 
   const filters: FeedFilters = useMemo(
     () => ({ ...EMPTY_FILTERS, severity }),
     [severity],
   )
 
-  const { data, isLoading, isError } = useReports({
+  const { data, isLoading, isError } = useRealtimeFeed({
     filters,
     userId: userId ?? undefined,
   })
 
   const reports = useMemo(() => data?.pages.flatMap((p) => p.reports) ?? [], [data])
+
+  useEffect(() => {
+    async function loadHotspots() {
+      try {
+        const hs = await detectHotspots()
+        setHotspots(hs)
+      } catch (err) {
+        console.error('Failed to load hotspots', err)
+      }
+    }
+    void loadHotspots()
+  }, [reports])
 
   return (
     <div className="space-y-4">
@@ -99,7 +113,7 @@ export function MapClient({ userId }: MapClientProps) {
         </div>
       ) : (
         <div className="h-[70vh] w-full">
-          <MapView reports={reports} />
+          <MapView reports={reports} hotspots={hotspots} />
         </div>
       )}
     </div>

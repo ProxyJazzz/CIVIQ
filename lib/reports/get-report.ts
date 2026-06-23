@@ -2,18 +2,11 @@ import { createClient } from '@/lib/supabase/client'
 import type { ReportWithStats } from '@/types/community'
 
 export async function getReport(id: string, userId?: string): Promise<ReportWithStats> {
-  const supabase = createClient()
+  const supabase = await createClient()
 
   const { data, error } = await supabase
-    .from('reports')
-    .select(
-      `
-      *,
-      vote_count:votes(count),
-      comment_count:comments(count),
-      verification_count:report_verifications(count)
-      `,
-    )
+    .from('reports_with_stats')
+    .select('*')
     .eq('id', id)
     .single()
 
@@ -38,12 +31,11 @@ export async function getReport(id: string, userId?: string): Promise<ReportWith
     userHasVerified = !!verifyRes.data
   }
 
+  // Cast row to matching interface
+  const row = data as unknown as ReportWithStats
+
   return {
-    ...data,
-    vote_count: (data.vote_count as unknown as { count: number }[])[0]?.count ?? 0,
-    comment_count: (data.comment_count as unknown as { count: number }[])[0]?.count ?? 0,
-    verification_count:
-      (data.verification_count as unknown as { count: number }[])[0]?.count ?? 0,
+    ...row,
     user_has_voted: userHasVoted,
     user_has_verified: userHasVerified,
   }

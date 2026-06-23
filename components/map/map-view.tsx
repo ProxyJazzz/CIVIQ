@@ -6,9 +6,11 @@ import 'mapbox-gl/dist/mapbox-gl.css'
 
 import { calculateTrustScore } from '@/lib/trust-score/calculate-trust-score'
 import type { ReportWithStats } from '@/types/community'
+import type { Hotspot } from '@/lib/realtime/detect-hotspots'
 
 interface MapViewProps {
   reports: ReportWithStats[]
+  hotspots?: Hotspot[]
 }
 
 const SEVERITY_COLORS: Record<string, string> = {
@@ -21,6 +23,7 @@ function createPopupHTML(report: ReportWithStats) {
   const trust = calculateTrustScore({
     verifications: report.verification_count,
     votes: report.vote_count,
+    comments: report.comment_count,
     createdAt: report.created_at,
   })
   const color = SEVERITY_COLORS[report.severity] ?? '#6b7280'
@@ -43,10 +46,11 @@ function createPopupHTML(report: ReportWithStats) {
   `
 }
 
-export function MapView({ reports }: MapViewProps) {
+export function MapView({ reports, hotspots = [] }: MapViewProps) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const markersRef = useRef<mapboxgl.Marker[]>([])
+  const hotspotsRef = useRef<mapboxgl.Marker[]>([])
 
   useEffect(() => {
     const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
@@ -67,24 +71,50 @@ export function MapView({ reports }: MapViewProps) {
 
     return () => {
       markersRef.current.forEach((m) => m.remove())
+      hotspotsRef.current.forEach((h) => h.remove())
       map.remove()
       mapRef.current = null
     }
   }, [])
 
-  // Update markers when reports change
+  // Update markers when reports or hotspots change
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
+
+    // Inject animation CSS on mount/render
+    const styleId = 'civiq-hotspot-pulse-styles'
+    if (!document.getElementById(styleId)) {
+      const style = document.createElement('style')
+      style.id = styleId
+      style.textContent = `
+        @keyframes civiq-pulse-radar {
+          0% {
+            transform: scale(0.6);
+            opacity: 1;
+          }
+          100% {
+            transform: scale(2.2);
+            opacity: 0;
+          }
+        }
+      `
+      document.head.appendChild(style)
+    }
 
     // Remove old markers
     markersRef.current.forEach((m) => m.remove())
     markersRef.current = []
 
+    // Remove old hotspots
+    hotspotsRef.current.forEach((h) => h.remove())
+    hotspotsRef.current = []
+
     if (reports.length === 0) return
 
     const bounds = new mapboxgl.LngLatBounds()
 
+    // 1. Render normal report pins
     reports.forEach((report) => {
       if (!report.latitude || !report.longitude) return
 
@@ -119,10 +149,74 @@ export function MapView({ reports }: MapViewProps) {
       bounds.extend([report.longitude, report.latitude])
     })
 
+    // 2. Render emergency pulsing hotspots
+    hotspots.forEach((hotspot) => {
+      if (!hotspot.latitude || !hotspot.longitude) return
+
+      const el = document.createElement('div')
+      el.className = 'civiq-hotspot-marker'
+      el.style.cssText = `
+        position: relative;
+        width: 44px; height: 44px;
+        display: flex; align-items: center; justify-content: center;
+        cursor: pointer;
+      `
+
+      const ring = document.createElement('div')
+      ring.style.cssText = `
+        position: absolute;
+        width: 100%; height: 100%;
+        border-radius: 50%;
+        background: rgba(239, 68, 68, 0.15);
+        border: 2px solid rgba(239, 68, 68, 0.7);
+        animation: civiq-pulse-radar 1.5s infinite ease-out;
+        pointer-events: none;
+      `
+
+      const dot = document.createElement('div')
+      dot.style.cssText = `
+        width: 12px; height: 12px;
+        border-radius: 50%;
+        background: #ef4444;
+        border: 2.5px solid white;
+        box-shadow: 0 0 12px rgba(239, 68, 68, 0.9);
+      `
+
+      el.appendChild(ring)
+      el.appendChild(dot)
+
+      const popup = new mapboxgl.Popup({
+        offset: 20,
+        className: 'civiq-popup',
+        maxWidth: '260px',
+      }).setHTML(`
+        <div style="font-family:system-ui,sans-serif;max-width:240px;padding:4px 0;">
+          <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;color:#ef4444;">
+            <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;flex-shrink:0;"></span>
+            <span style="font-size:13px;font-weight:700;line-height:1.3;text-transform:uppercase;">Emergency Hotspot</span>
+          </div>
+          <p style="font-size:11px;color:#d1d5db;margin-bottom:8px;">
+            Concentration of <strong>${hotspot.count}</strong> high-severity unresolved issues within a 150m radius.
+          </p>
+          <div style="font-size:11px;color:#9ca3af;margin-top:6px;max-height:85px;overflow-y:auto;border-top:1px solid rgba(255,255,255,0.1);padding-top:6px;">
+            ${hotspot.reports.map((r) => `• ${r.title}`).join('<br/>')}
+          </div>
+        </div>
+      `)
+
+      const marker = new mapboxgl.Marker({ element: el })
+        .setLngLat([hotspot.longitude, hotspot.latitude])
+        .setPopup(popup)
+        .addTo(map)
+
+      hotspotsRef.current.push(marker)
+      bounds.extend([hotspot.longitude, hotspot.latitude])
+    })
+
     if (!bounds.isEmpty()) {
       map.fitBounds(bounds, { padding: 80, maxZoom: 14, duration: 800 })
     }
-  }, [reports])
+  }, [reports, hotspots])
 
   const hasToken = !!process.env.NEXT_PUBLIC_MAPBOX_TOKEN
 

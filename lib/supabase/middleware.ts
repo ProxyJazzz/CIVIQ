@@ -3,7 +3,7 @@ import { NextResponse, type NextRequest } from 'next/server'
 
 import type { Database } from '@/types/database'
 
-const protectedRoutes = ['/feed', '/report', '/dashboard', '/profile']
+const protectedRoutes = ['/feed', '/report', '/dashboard', '/profile', '/admin', '/analytics', '/leaderboard', '/notifications']
 const authRoutes = ['/auth']
 
 export async function updateSession(request: NextRequest) {
