@@ -113,5 +113,13 @@ begin
     ) then
       alter publication supabase_realtime add table public.user_presence;
     end if;
+
+    -- Add public.report_verifications
+    if not exists (
+      select 1 from pg_publication_tables
+      where pubname = 'supabase_realtime' and schemaname = 'public' and tablename = 'report_verifications'
+    ) then
+      alter publication supabase_realtime add table public.report_verifications;
+    end if;
   end if;
 end $$;

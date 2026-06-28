@@ -37,7 +37,6 @@ export async function detectHotspots(): Promise<Hotspot[]> {
   // Fetch active (unresolved, undismissed) reports with severity = 'High'
   const { data: reports, error } = await supabase
     .from('reports')
-    .select('id', { head: false })
     .select('id, title, category, address, latitude, longitude, severity, status')
     .eq('severity', 'High')
     .not('status', 'in', '("resolved","dismissed")')

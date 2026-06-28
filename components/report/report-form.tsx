@@ -1,6 +1,7 @@
 'use client'
 
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { motion } from 'framer-motion'
@@ -27,6 +28,7 @@ interface ReportFormProps {
 const STEPS = ['Upload Image', 'Fill Details', 'AI Analysis', 'Submit']
 
 export function ReportForm({ userId }: ReportFormProps) {
+  const router = useRouter()
   const { loading, error, success, report, submitReport, reset } = useReport()
 
   const [imageFile, setImageFile] = useState<File | null>(null)
@@ -119,14 +121,18 @@ export function ReportForm({ userId }: ReportFormProps) {
     }
   }, [previewUrl])
 
-  // Toast on state change
+  // Toast on state change and redirect
   useEffect(() => {
     if (success && report) {
       toast.success('Report submitted!', {
-        description: `Report #${report.id.slice(0, 8)} is now pending review.`,
+        description: `Report #${report.id.slice(0, 8)} is now pending review. Redirecting...`,
       })
+      const timer = setTimeout(() => {
+        router.push(`/report/${report.id}`)
+      }, 1500)
+      return () => clearTimeout(timer)
     }
-  }, [success, report])
+  }, [success, report, router])
 
   useEffect(() => {
     if (error) {

@@ -14,16 +14,24 @@ interface PresenceTrackState {
   last_seen_at?: string
 }
 
+// Instantiate Supabase client at module scope to avoid recreate on every render
+const supabase = createClient()
+
 export function usePresence(
   userId: string | null,
   profile?: { full_name: string | null; avatar_url: string | null } | null
 ) {
   const [onlineUsers, setOnlineUsers] = useState<ActivePresence[]>([])
-  const supabase = createClient()
 
   useEffect(() => {
-    const channel = supabase.channel('civiq_presence_layer')
+    // Unique channel identifier for each session to avoid colliding subscriptions
+    const channelName = `civiq_presence_layer_${userId ?? 'guest'}_${Date.now()}`
+    const channel = supabase.channel(channelName)
 
+    const fullName = profile?.full_name
+    const avatarUrl = profile?.avatar_url
+
+    // 1. Register presence callbacks BEFORE calling subscribe()
     channel
       .on('presence', { event: 'sync' }, () => {
         const state = channel.presenceState()
@@ -45,25 +53,27 @@ export function usePresence(
           }
         })
 
-        // Deduplicate and filter out any invalid users
         setOnlineUsers(formatted)
       })
       .subscribe(async (status) => {
         if (status !== 'SUBSCRIBED') return
 
         if (userId) {
+          // Sync database state to online
           await updatePresence('online').catch(console.error)
 
+          // Track state in presence channel
           await channel.track({
             user_id: userId,
-            full_name: profile?.full_name || 'Citizen',
-            avatar_url: profile?.avatar_url || null,
+            full_name: fullName || 'Citizen',
+            avatar_url: avatarUrl || null,
             status: 'online',
             last_seen_at: new Date().toISOString(),
           })
         }
       })
 
+    // 2. Browser tab focus synchronization handler
     const handleVisibilityChange = async () => {
       if (!userId) return
 
@@ -73,8 +83,8 @@ export function usePresence(
       await updatePresence(status).catch(console.error)
       await channel.track({
         user_id: userId,
-        full_name: profile?.full_name || 'Citizen',
-        avatar_url: profile?.avatar_url || null,
+        full_name: fullName || 'Citizen',
+        avatar_url: avatarUrl || null,
         status,
         last_seen_at: new Date().toISOString(),
       })
@@ -82,14 +92,16 @@ export function usePresence(
 
     document.addEventListener('visibilitychange', handleVisibilityChange)
 
+    // 3. Clean up subscription and visibility listener on unmount
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange)
       if (userId) {
         void updatePresence('offline').catch(console.error)
       }
+      void channel.unsubscribe()
       void supabase.removeChannel(channel)
     }
-  }, [userId, profile?.full_name, profile?.avatar_url, supabase])
+  }, [userId, profile?.full_name, profile?.avatar_url])
 
   return {
     onlineUsers,

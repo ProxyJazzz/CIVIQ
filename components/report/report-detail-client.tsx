@@ -23,6 +23,7 @@ import { VerifyButton } from '@/components/verification/verify-button'
 import { Skeleton } from '@/components/ui/skeleton'
 import { useRealtimeComments } from '@/hooks/useRealtimeComments'
 import { useRealtimeVotes } from '@/hooks/useRealtimeVotes'
+import { useRealtimeVerifications } from '@/hooks/useRealtimeVerifications'
 import { getReport } from '@/lib/reports/get-report'
 import { calculateTrustScore } from '@/lib/trust-score/calculate-trust-score'
 import { cn } from '@/lib/utils'
@@ -57,6 +58,7 @@ export function ReportDetailClient({ reportId, userId }: ReportDetailClientProps
   })
 
   useRealtimeVotes(reportId, userId)
+  useRealtimeVerifications(reportId, userId)
 
   const { comments, isLoading: commentsLoading, addComment, editComment, removeComment } =
     useRealtimeComments(reportId)
