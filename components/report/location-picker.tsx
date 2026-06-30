@@ -124,8 +124,8 @@ export function LocationPicker({ value, onChange, errors, disabled }: LocationPi
   }, [onChange, fetchAddress])
 
   // Osm Nominatim Location search lookup
-  async function handleSearch(e: React.FormEvent) {
-    e.preventDefault()
+  async function handleSearch(e?: React.FormEvent | React.MouseEvent | React.KeyboardEvent) {
+    if (e) e.preventDefault()
     if (!searchQuery.trim()) return
 
     setSearching(true)
@@ -194,26 +194,33 @@ export function LocationPicker({ value, onChange, errors, disabled }: LocationPi
       {geoError && <p className="text-xs text-red-400">{geoError}</p>}
 
       {/* Geocoding search input */}
-      <form onSubmit={handleSearch} className="flex gap-2">
+      <div className="flex gap-2">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
           <Input
             placeholder="Search address or area..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter') {
+                e.preventDefault()
+                void handleSearch(e)
+              }
+            }}
             disabled={disabled || searching}
             className="pl-9 bg-white/5"
           />
         </div>
         <Button
-          type="submit"
+          type="button"
+          onClick={(e) => void handleSearch(e)}
           variant="outline"
           disabled={disabled || searching}
           className="border-white/10 bg-white/5"
         >
           {searching ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Search'}
         </Button>
-      </form>
+      </div>
 
       {/* Autocomplete Search Results */}
       {searchResults.length > 0 && (
