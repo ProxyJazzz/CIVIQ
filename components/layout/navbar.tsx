@@ -5,7 +5,7 @@ import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
 import { useQuery } from "@tanstack/react-query"
 import { ExitIcon, PersonIcon } from "@radix-ui/react-icons"
-import { Map, Radio, Activity, Trophy, BarChart2, Shield, Bell } from "lucide-react"
+import { Map, Radio, Activity, Trophy, BarChart2, Shield, Bell, PlusCircle } from "lucide-react"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -129,6 +129,17 @@ export function Navbar() {
             Feed
           </Link>
           <Link
+            href="/report"
+            className={`flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-extrabold tracking-wide transition-all duration-300 ${
+              pathname.startsWith("/report")
+                ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30 shadow-[0_0_12px_rgba(16,185,129,0.2)] font-black"
+                : "text-emerald-400/80 hover:text-emerald-400 hover:bg-emerald-500/10 border border-emerald-500/10 hover:shadow-[0_0_8px_rgba(16,185,129,0.15)]"
+            }`}
+          >
+            <PlusCircle className="h-3.5 w-3.5" />
+            Report
+          </Link>
+          <Link
             href="/map"
             className={`flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-semibold tracking-wide transition-all duration-200 ${linkActiveClasses(
               "/map"
@@ -237,6 +248,12 @@ export function Navbar() {
                   )}
                   {/* Mobile Links */}
                   <DropdownMenuItem asChild className="rounded-xl focus:bg-white/5 focus:text-white cursor-pointer px-2.5 py-2 md:hidden">
+                    <Link href="/report" className="flex items-center text-xs font-medium w-full text-emerald-400">
+                      <PlusCircle className="mr-2 h-4 w-4 text-emerald-400" />
+                      Report Issue
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuItem asChild className="rounded-xl focus:bg-white/5 focus:text-white cursor-pointer px-2.5 py-2 md:hidden">
                     <Link href="/feed" className="flex items-center text-xs font-medium w-full">
                       <Radio className="mr-2 h-4 w-4 text-muted-foreground" />
                       Feed
@@ -281,6 +298,17 @@ export function Navbar() {
           )}
         </nav>
       </div>
+      {user && (
+        <div className="fixed bottom-6 right-6 z-50 md:hidden">
+          <Link
+            href="/report"
+            className="flex h-12 w-12 items-center justify-center rounded-full bg-accent text-accent-foreground shadow-lg shadow-accent/40 border border-white/10 hover:scale-105 active:scale-95 transition-all duration-200"
+            aria-label="Report issue"
+          >
+            <PlusCircle className="h-6 w-6 animate-pulse" />
+          </Link>
+        </div>
+      )}
     </header>
   )
 }
