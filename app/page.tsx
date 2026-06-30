@@ -1,10 +1,17 @@
 'use client'
 
+import { useState, useEffect } from "react"
 import Link from "next/link"
 import { motion, Variants } from "framer-motion"
 import { ArrowRight, Zap, Cpu, MapPin, CheckCircle, Users } from "lucide-react"
+import { getLandingStats, type LandingStats } from "@/lib/analytics/landing-stats"
 
 export default function Home() {
+  const [stats, setStats] = useState<LandingStats | null>(null)
+
+  useEffect(() => {
+    getLandingStats().then(setStats)
+  }, [])
   const containerVariants: Variants = {
     hidden: { opacity: 0 },
     visible: {
@@ -80,10 +87,10 @@ export default function Home() {
           animate="visible"
         >
           {[
-            { value: "98.7%", label: "Accuracy Rate", desc: "Gemini AI visual parsing" },
-            { value: "< 2 mins", label: "Verification Time", desc: "Real-time sync" },
-            { value: "48 hrs", label: "Avg Resolution", desc: "Municipal ops pipeline" },
-            { value: "100%", label: "Secure Auth", desc: "Supabase Guard protected" }
+            { value: stats ? `${stats.totalReports} Reports` : "…", label: "Total Reports", desc: "Submitted by community" },
+            { value: stats ? stats.accuracyRate : "…", label: "Accuracy Rate", desc: "Gemini AI visual parsing" },
+            { value: stats ? stats.avgResolutionTime : "…", label: "Avg Resolution", desc: "Municipal ops pipeline" },
+            { value: stats ? `${stats.activeCitizens} Citizens` : "…", label: "Active Citizens", desc: "Registered community profiles" }
           ].map((stat, i) => (
             <motion.div 
               key={i} 
