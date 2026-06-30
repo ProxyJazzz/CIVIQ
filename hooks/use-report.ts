@@ -49,7 +49,9 @@ export function useReport() {
       }))
 
       // 1. Upload to Supabase Storage
-      const uploadResult = await uploadImage(file)
+      const formData = new FormData()
+      formData.append('file', file)
+      const uploadResult = await uploadImage(formData)
       if (!uploadResult.success) {
         setState((prev) => ({ ...prev, uploading: false, error: uploadResult.error.message }))
         return null

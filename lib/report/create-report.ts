@@ -18,7 +18,9 @@ interface CreateReportInput {
 
 export async function createReport(input: CreateReportInput): Promise<PipelineResult<Report>> {
   // Step 1 — Upload image to Supabase Storage
-  const uploadResult = await uploadImage(input.file)
+  const formData = new FormData()
+  formData.append('file', input.file)
+  const uploadResult = await uploadImage(formData)
 
   if (!uploadResult.success) {
     return uploadResult
