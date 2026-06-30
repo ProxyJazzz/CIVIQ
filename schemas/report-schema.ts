@@ -54,6 +54,11 @@ export const reportFormInputSchema = z.object({
       message: 'Longitude must be between -180 and 180.',
     }),
   address: z.string().trim().min(1, 'Address is required.').max(240),
+  category: z.enum(reportCategories).optional(),
+  severity: z.enum(reportSeverities).optional(),
+  department: z.string().trim().optional(),
+  summary: z.string().trim().max(500).optional(),
+  tags: z.string().trim().optional(),
 })
 
 export type ReportFormInputValues = z.infer<typeof reportFormInputSchema>
