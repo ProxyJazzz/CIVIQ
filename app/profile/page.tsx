@@ -46,17 +46,17 @@ export default async function ProfilePage() {
   const avatarUrl = profile?.avatar_url || (user.user_metadata.avatar_url as string | undefined)
 
   return (
-    <section className="mx-auto max-w-3xl space-y-6">
-      <div className="rounded-xl border bg-card p-6 shadow-sm">
+    <section className="mx-auto max-w-3xl space-y-6 my-6 px-4">
+      <div className="glass-card rounded-3xl border border-white/8 bg-[#0B0E13]/60 p-8 shadow-2xl">
         <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-4">
-            <Avatar className="h-20 w-20">
+            <Avatar className="h-20 w-20 border-2 border-[#050608] shadow-md">
               <AvatarImage src={avatarUrl} alt={fullName} />
-              <AvatarFallback className="text-xl">{getInitials(fullName, email)}</AvatarFallback>
+              <AvatarFallback className="text-xl bg-muted font-bold">{getInitials(fullName, email)}</AvatarFallback>
             </Avatar>
-            <div>
-              <h1 className="text-2xl font-semibold tracking-tight">{fullName}</h1>
-              <p className="text-sm text-muted-foreground">{email}</p>
+            <div className="space-y-1">
+              <h1 className="text-xl md:text-2xl font-black tracking-tight text-white uppercase">{fullName}</h1>
+              <p className="text-xs font-bold text-muted-foreground tracking-wide">{email}</p>
             </div>
           </div>
 
@@ -64,22 +64,22 @@ export default async function ProfilePage() {
         </div>
 
         <dl className="mt-8 grid gap-4 sm:grid-cols-2">
-          <div className="rounded-lg border bg-background p-4">
-            <dt className="text-sm text-muted-foreground">Join date</dt>
-            <dd className="mt-1 font-medium">{formatJoinDate(profile?.created_at || user.created_at)}</dd>
+          <div className="rounded-2xl border border-white/5 bg-white/4 p-5 space-y-1">
+            <dt className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Join date</dt>
+            <dd className="text-sm font-bold text-white">{formatJoinDate(profile?.created_at || user.created_at)}</dd>
           </div>
-          <div className="rounded-lg border bg-background p-4">
-            <dt className="text-sm text-muted-foreground">Identity provider</dt>
-            <dd className="mt-1 font-medium">Google OAuth</dd>
+          <div className="rounded-2xl border border-white/5 bg-white/4 p-5 space-y-1">
+            <dt className="text-[10px] font-black uppercase tracking-widest text-muted-foreground">Identity provider</dt>
+            <dd className="text-sm font-bold text-white">Google OAuth</dd>
           </div>
         </dl>
       </div>
 
       {error || !profile ? (
-        <Alert variant="destructive">
-          <AlertTitle>Profile unavailable</AlertTitle>
-          <AlertDescription>
-            Your session is active, but your profile could not be loaded. Please sign out and try again.
+        <Alert variant="destructive" className="rounded-2xl border-red-500/20 bg-red-500/5 text-red-400">
+          <AlertTitle className="font-bold text-xs uppercase tracking-wider">Profile Status Notice</AlertTitle>
+          <AlertDescription className="text-xs leading-relaxed mt-1">
+            Your authenticated session is active, but your profile could not be loaded from public.profiles. Please sign out and try again.
           </AlertDescription>
         </Alert>
       ) : null}

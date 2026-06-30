@@ -1,6 +1,6 @@
 'use client'
 
-import Image from 'next/image'
+import { SafeImage } from '@/components/shared/safe-image'
 import Link from 'next/link'
 import { formatDistanceToNow, format } from 'date-fns'
 import { motion } from 'framer-motion'
@@ -65,8 +65,8 @@ export function ReportDetailClient({ reportId, userId }: ReportDetailClientProps
 
   if (isLoading) {
     return (
-      <div className="space-y-6">
-        <Skeleton className="aspect-[21/9] w-full rounded-2xl" />
+      <div className="space-y-6 max-w-6xl mx-auto px-4 py-8">
+        <Skeleton className="aspect-[21/9] w-full rounded-3xl" />
         <div className="space-y-3">
           <Skeleton className="h-7 w-2/3" />
           <Skeleton className="h-4 w-full" />
@@ -78,10 +78,10 @@ export function ReportDetailClient({ reportId, userId }: ReportDetailClientProps
 
   if (isError || !report) {
     return (
-      <div className="flex flex-col items-center gap-3 py-20 text-center">
-        <ShieldAlert className="h-10 w-10 text-red-400/70" />
-        <p className="text-muted-foreground">Report not found or access denied.</p>
-        <Link href="/feed" className="text-sm text-blue-400 underline underline-offset-4">
+      <div className="flex flex-col items-center gap-3 py-20 text-center max-w-6xl mx-auto px-4 py-8">
+        <ShieldAlert className="h-10 w-10 text-red-400/70 animate-pulse" />
+        <p className="text-sm font-bold text-[#A0AEC0]">Report not found or access denied.</p>
+        <Link href="/feed" className="text-xs text-accent font-bold hover:underline underline-offset-4">
           Back to feed
         </Link>
       </div>
@@ -97,10 +97,17 @@ export function ReportDetailClient({ reportId, userId }: ReportDetailClientProps
 
   const trustColor =
     trust.label === 'High Trust'
-      ? 'text-emerald-400'
+      ? 'text-accent'
       : trust.label === 'Medium Trust'
         ? 'text-amber-400'
         : 'text-red-400/70'
+
+  const trustBadgeStyles =
+    trust.label === 'High Trust'
+      ? 'bg-accent/10 text-accent border-accent/25'
+      : trust.label === 'Medium Trust'
+        ? 'bg-amber-500/10 text-amber-400 border-amber-500/25'
+        : 'bg-red-500/10 text-red-400 border-red-500/25'
 
   async function handleAddComment(content: string) {
     if (!userId) return
@@ -119,26 +126,26 @@ export function ReportDetailClient({ reportId, userId }: ReportDetailClientProps
 
   return (
     <motion.div
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4, ease: 'easeOut' }}
-      className="space-y-8"
+      transition={{ duration: 0.6, ease: [0.16, 1, 0.3, 1] }}
+      className="space-y-6 max-w-6xl mx-auto px-4 py-6"
     >
-      {/* Back */}
+      {/* Back button */}
       <Link
         href="/feed"
-        className="inline-flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+        className="inline-flex items-center gap-1.5 text-xs font-bold uppercase tracking-wider text-muted-foreground hover:text-white transition-colors duration-200"
       >
-        <ArrowLeft className="h-4 w-4" />
+        <ArrowLeft className="h-4 w-4 text-accent" />
         Back to feed
       </Link>
 
-      <div className="grid gap-8 lg:grid-cols-[1fr_340px]">
-        {/* ─── Left column ─────────────────────────────────────── */}
+      <div className="grid gap-6 lg:grid-cols-[1fr_320px]">
+        {/* ─── Left Column ──────────────────────────────────────── */}
         <div className="space-y-6">
-          {/* Hero image */}
-          <div className="relative aspect-[16/9] overflow-hidden rounded-2xl border border-white/10">
-            <Image
+          {/* Main Hero Image */}
+          <div className="relative aspect-[16/10] sm:aspect-[21/9] overflow-hidden rounded-3xl border border-white/8 bg-[#0B0E13]">
+            <SafeImage
               src={report.image_url}
               alt={report.title}
               fill
@@ -146,34 +153,38 @@ export function ReportDetailClient({ reportId, userId }: ReportDetailClientProps
               sizes="(max-width: 1024px) 100vw, 65vw"
               priority
             />
-            <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-            <div className="absolute bottom-4 left-4 flex flex-wrap gap-2">
-              <Badge variant={getSeverityVariant(report.severity)}>{report.severity} Severity</Badge>
-              <Badge variant={getStatusVariant(report.status)}>{formatStatus(report.status)}</Badge>
-              <Badge variant="category">{report.category}</Badge>
+            <div className="absolute inset-0 bg-gradient-to-t from-[#050608]/90 via-transparent to-transparent" />
+            <div className="absolute bottom-5 left-5 flex flex-wrap gap-2">
+              <Badge variant={getSeverityVariant(report.severity)} className="font-bold text-[10px] uppercase">{report.severity} Severity</Badge>
+              <Badge variant={getStatusVariant(report.status)} className="font-bold text-[10px] uppercase shadow-md">{formatStatus(report.status)}</Badge>
+              <Badge variant="category" className="font-bold text-[10px] uppercase bg-[#0B0E13]/80 backdrop-blur-md">{report.category}</Badge>
             </div>
           </div>
 
-          {/* Title + description */}
-          <div className="space-y-3">
-            <h1 className="text-2xl font-bold leading-snug">{report.title}</h1>
-            <p className="text-muted-foreground leading-relaxed">{report.description}</p>
+          {/* Incident Headers */}
+          <div className="space-y-3 glass-card rounded-3xl p-6 border border-white/5">
+            <h1 className="text-xl md:text-2xl font-black tracking-tight text-white leading-tight">
+              {report.title}
+            </h1>
+            <p className="text-xs md:text-sm text-[#A0AEC0] leading-relaxed">
+              {report.description}
+            </p>
+
+            {/* Geolocation metadata */}
+            <div className="flex flex-wrap items-center gap-y-2 gap-x-4 pt-3 border-t border-white/5 text-[11px] font-bold text-muted-foreground">
+              <span className="flex items-center gap-1.5">
+                <MapPin className="h-4 w-4 text-accent" />
+                {report.address}
+              </span>
+              <span className="flex items-center gap-1.5">
+                <Calendar className="h-4 w-4 text-accent" />
+                {format(new Date(report.created_at), 'PPP')} &middot;{' '}
+                {formatDistanceToNow(new Date(report.created_at), { addSuffix: true })}
+              </span>
+            </div>
           </div>
 
-          {/* Location + date */}
-          <div className="flex flex-wrap gap-4 text-sm text-muted-foreground">
-            <span className="flex items-center gap-1.5">
-              <MapPin className="h-4 w-4" />
-              {report.address}
-            </span>
-            <span className="flex items-center gap-1.5">
-              <Calendar className="h-4 w-4" />
-              {format(new Date(report.created_at), 'PPP')} &middot;{' '}
-              {formatDistanceToNow(new Date(report.created_at), { addSuffix: true })}
-            </span>
-          </div>
-
-          {/* Action row */}
+          {/* Engagement interaction triggers */}
           <div className="flex flex-wrap gap-3">
             <VoteButton
               reportId={report.id}
@@ -189,14 +200,14 @@ export function ReportDetailClient({ reportId, userId }: ReportDetailClientProps
             />
           </div>
 
-          {/* Comments */}
+          {/* Real-time Comments Box */}
           <div
-            className="rounded-2xl border border-white/8 bg-white/4 p-5 space-y-5"
+            className="rounded-3xl border border-white/8 bg-[#0B0E13]/60 p-6 space-y-6 shadow-xl shadow-black/20"
             id="comments"
           >
             <div className="flex items-center gap-2">
-              <MessageSquare className="h-4 w-4 text-muted-foreground" />
-              <h2 className="text-base font-semibold">
+              <MessageSquare className="h-4 w-4 text-accent" />
+              <h2 className="text-sm font-black tracking-tight text-white">
                 {comments.length} {comments.length === 1 ? 'Comment' : 'Comments'}
               </h2>
             </div>
@@ -213,82 +224,85 @@ export function ReportDetailClient({ reportId, userId }: ReportDetailClientProps
           </div>
         </div>
 
-        {/* ─── Right sidebar ───────────────────────────────────── */}
+        {/* ─── Right Sidebar ────────────────────────────────────── */}
         <div className="space-y-4">
-          {/* AI Analysis */}
-          <div className="rounded-2xl border border-blue-500/20 bg-blue-500/5 p-5 space-y-4">
+          {/* AI Analysis Diagnostic */}
+          <div className="rounded-3xl border border-blue-500/20 bg-blue-500/5 p-5 space-y-4 shadow-lg shadow-blue-500/5 hover:border-blue-500/35 transition-colors duration-300">
             <div className="flex items-center gap-2">
               <Brain className="h-4 w-4 text-blue-400" />
-              <h2 className="text-sm font-semibold">AI Analysis</h2>
+              <h2 className="text-xs font-black tracking-wider uppercase text-blue-300">AI Analysis</h2>
             </div>
 
             {report.summary && (
-              <p className="text-sm text-foreground/90 leading-relaxed">{report.summary}</p>
+              <p className="text-[11px] text-[#A0AEC0] leading-relaxed font-medium">{report.summary}</p>
             )}
 
             <div className="space-y-2">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">Confidence</span>
-                <span className="font-semibold tabular-nums text-blue-300">
+              <div className="flex items-center justify-between text-[10px] font-bold text-blue-400 uppercase tracking-wide">
+                <span>Confidence score</span>
+                <span className="tabular-nums font-mono">
                   {Math.round(report.confidence * 100)}%
                 </span>
               </div>
               <div className="h-1.5 overflow-hidden rounded-full bg-white/10">
                 <div
-                  className="h-full rounded-full bg-blue-500"
+                  className="h-full rounded-full bg-blue-500 glow-blue transition-all duration-500"
                   style={{ width: `${report.confidence * 100}%` }}
                 />
               </div>
             </div>
           </div>
 
-          {/* Trust Score */}
-          <div className="rounded-2xl border border-white/8 bg-white/4 p-5 space-y-3">
+          {/* Community Trust Meter */}
+          <div className="rounded-3xl border border-white/8 bg-[#0B0E13]/60 p-5 space-y-4 shadow-xl shadow-black/20">
             <div className="flex items-center gap-2">
-              <Users className="h-4 w-4 text-muted-foreground" />
-              <h2 className="text-sm font-semibold">Community Trust</h2>
+              <Users className="h-4 w-4 text-accent" />
+              <h2 className="text-xs font-black tracking-wider uppercase text-white">Trust Metrics</h2>
             </div>
 
-            <div className="text-center py-2">
-              <div className={cn('text-3xl font-bold tabular-nums', trustColor)}>
+            <div className="text-center py-2 flex flex-col items-center">
+              <div className={cn('text-3xl font-black tracking-tighter tabular-nums leading-none', trustColor)}>
                 {trust.score}
               </div>
-              <div className={cn('text-sm font-medium mt-0.5', trustColor)}>{trust.label}</div>
+              <div className={cn('inline-flex items-center rounded-full border px-2.5 py-0.5 text-[9px] font-black uppercase tracking-wider mt-2.5', trustBadgeStyles)}>
+                {trust.label}
+              </div>
             </div>
 
-            <div className="space-y-2 text-xs">
+            <div className="space-y-2 text-[10px] font-bold uppercase tracking-wider pt-2 border-t border-white/5">
               {[
                 { label: 'Votes', value: report.vote_count, weight: '0.2×' },
                 { label: 'Verifications', value: report.verification_count, weight: '0.5×' },
                 { label: 'Comments', value: report.comment_count, weight: '0.1×' },
               ].map((stat) => (
                 <div key={stat.label} className="flex items-center justify-between text-muted-foreground">
-                  <span>{stat.label} <span className="text-[10px] text-muted-foreground/60">({stat.weight})</span></span>
-                  <span className="font-medium text-foreground">{stat.value}</span>
+                  <span>{stat.label} <span className="text-[8px] text-muted-foreground/60">({stat.weight})</span></span>
+                  <span className="font-mono text-white text-xs">{stat.value}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          {/* Coordinates */}
-          <div className="rounded-2xl border border-white/8 bg-white/4 p-5 space-y-2">
-            <h2 className="text-sm font-semibold">Location</h2>
-            <div className="grid grid-cols-2 gap-3 text-xs">
-              <div className="rounded-lg bg-white/5 p-2.5">
-                <p className="text-muted-foreground mb-1">Latitude</p>
-                <p className="font-mono font-medium">{report.latitude.toFixed(5)}</p>
+          {/* Coordinates Details */}
+          <div className="rounded-3xl border border-white/8 bg-[#0B0E13]/60 p-5 space-y-4 shadow-xl shadow-black/20">
+            <h2 className="text-xs font-black tracking-wider uppercase text-white">Incident GPS Coordinates</h2>
+            <div className="grid grid-cols-2 gap-2 text-xs">
+              <div className="rounded-2xl bg-white/5 border border-white/5 p-3">
+                <p className="text-[9px] uppercase tracking-wider font-bold text-muted-foreground mb-1">Latitude</p>
+                <p className="font-mono font-bold text-white text-[11px]">{report.latitude.toFixed(5)}</p>
               </div>
-              <div className="rounded-lg bg-white/5 p-2.5">
-                <p className="text-muted-foreground mb-1">Longitude</p>
-                <p className="font-mono font-medium">{report.longitude.toFixed(5)}</p>
+              <div className="rounded-2xl bg-white/5 border border-white/5 p-3">
+                <p className="text-[9px] uppercase tracking-wider font-bold text-muted-foreground mb-1">Longitude</p>
+                <p className="font-mono font-bold text-white text-[11px]">{report.longitude.toFixed(5)}</p>
               </div>
             </div>
+            
             <Link
               href={`/map?lat=${report.latitude}&lng=${report.longitude}`}
-              className="mt-2 inline-flex items-center gap-1 text-xs text-blue-400 hover:underline"
+              className="w-full inline-flex items-center justify-center gap-1.5 rounded-full bg-white/5 border border-white/10 py-2 text-xs font-bold text-white transition-all hover:bg-white/10 hover:border-white/20 mt-1"
             >
-              <MapPin className="h-3 w-3" />
-              View on map
+              <MapPin className="h-3.5 w-3.5 text-accent" />
+              View on Map
             </Link>
           </div>
         </div>

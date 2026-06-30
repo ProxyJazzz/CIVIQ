@@ -50,6 +50,12 @@ export function RealtimeListener({ userId }: RealtimeListenerProps) {
             if (old.some((n) => n.id === newNotification.id)) return old
             return [newNotification, ...old]
           })
+
+          queryClient.setQueryData<any[]>(['notifications-badge', userId], (old) => {
+            if (!old) return [{ id: newNotification.id, read: false }]
+            if (old.some((n) => n.id === newNotification.id)) return old
+            return [{ id: newNotification.id, read: false }, ...old]
+          })
         }
       )
       .subscribe()
@@ -57,7 +63,7 @@ export function RealtimeListener({ userId }: RealtimeListenerProps) {
     return () => {
       void supabase.removeChannel(channel)
     }
-  }, [userId, queryClient, router, supabase])
+  }, [userId, queryClient, router])
 
   return null
 }

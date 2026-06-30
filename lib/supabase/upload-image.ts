@@ -60,8 +60,22 @@ export async function uploadImage(file: File): Promise<PipelineResult<string>> {
 
   try {
     const supabase = await createClient()
+
+    // Retrieve user session on the server
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      return {
+        success: false,
+        error: {
+          code: 'IMAGE_UPLOAD_FAILED',
+          message: 'You must be signed in to upload issue images.',
+        },
+      }
+    }
+
     const filename = `${crypto.randomUUID()}.${getFileExtension(file)}`
-    const path = `${crypto.randomUUID()}/${filename}`
+    const path = `${user.id}/${filename}`
 
     const { error } = await supabase.storage.from(bucketName).upload(path, file, {
       cacheControl: '3600',

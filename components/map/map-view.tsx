@@ -1,8 +1,10 @@
 'use client'
 
-import { useEffect, useRef } from 'react'
-import mapboxgl from 'mapbox-gl'
-import 'mapbox-gl/dist/mapbox-gl.css'
+import { useEffect, useState } from 'react'
+import { MapContainer, TileLayer, Marker, Popup, useMap } from 'react-leaflet'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
+import MarkerClusterGroup from 'react-leaflet-cluster'
 
 import { calculateTrustScore } from '@/lib/trust-score/calculate-trust-score'
 import type { ReportWithStats } from '@/types/community'
@@ -14,75 +16,19 @@ interface MapViewProps {
 }
 
 const SEVERITY_COLORS: Record<string, string> = {
-  High: '#ef4444',
-  Medium: '#f59e0b',
-  Low: '#22c55e',
+  High: '#EF4444',
+  Medium: '#F59E0B',
+  Low: '#00C896',
 }
 
-function createPopupHTML(report: ReportWithStats) {
-  const trust = calculateTrustScore({
-    verifications: report.verification_count,
-    votes: report.vote_count,
-    comments: report.comment_count,
-    createdAt: report.created_at,
-  })
-  const color = SEVERITY_COLORS[report.severity] ?? '#6b7280'
-
-  return `
-    <div style="font-family:system-ui,sans-serif;max-width:220px;padding:4px 0;">
-      <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;">
-        <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${color};flex-shrink:0;"></span>
-        <span style="font-size:13px;font-weight:600;line-height:1.3;">${report.title}</span>
-      </div>
-      <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:8px;">
-        <span style="background:rgba(255,255,255,0.1);border-radius:99px;padding:2px 8px;font-size:11px;">${report.category}</span>
-        <span style="background:${color}22;color:${color};border-radius:99px;padding:2px 8px;font-size:11px;">${report.severity}</span>
-      </div>
-      <div style="font-size:11px;color:#9ca3af;margin-bottom:6px;">Trust: <strong style="color:#d1d5db;">${trust.label}</strong> (${trust.score})</div>
-      <a href="/report/${report.id}" style="display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:500;color:#60a5fa;text-decoration:none;">
-        View details →
-      </a>
-    </div>
-  `
-}
-
-export function MapView({ reports, hotspots = [] }: MapViewProps) {
-  const containerRef = useRef<HTMLDivElement>(null)
-  const mapRef = useRef<mapboxgl.Map | null>(null)
-  const markersRef = useRef<mapboxgl.Marker[]>([])
-  const hotspotsRef = useRef<mapboxgl.Marker[]>([])
+// Sub-component to handle map flyTo and fitBounds logic dynamically
+function MapController({ reports, hotspots = [] }: { reports: ReportWithStats[]; hotspots: Hotspot[] }) {
+  const map = useMap()
 
   useEffect(() => {
-    const token = process.env.NEXT_PUBLIC_MAPBOX_TOKEN
-
-    if (!token || !containerRef.current) return
-
-    mapboxgl.accessToken = token
-
-    const map = new mapboxgl.Map({
-      container: containerRef.current,
-      style: 'mapbox://styles/mapbox/dark-v11',
-      center: [77.209, 28.6139], // Default: New Delhi
-      zoom: 11,
-    })
-
-    map.addControl(new mapboxgl.NavigationControl(), 'top-right')
-    mapRef.current = map
-
-    return () => {
-      markersRef.current.forEach((m) => m.remove())
-      hotspotsRef.current.forEach((h) => h.remove())
-      map.remove()
-      mapRef.current = null
-    }
-  }, [])
-
-  // Update markers when reports or hotspots change
-  useEffect(() => {
-    const map = mapRef.current
     if (!map) return
 
-    // Inject animation CSS on mount/render
+    // Inject animation CSS on mount
     const styleId = 'civiq-hotspot-pulse-styles'
     if (!document.getElementById(styleId)) {
       const style = document.createElement('style')
@@ -98,141 +44,237 @@ export function MapView({ reports, hotspots = [] }: MapViewProps) {
             opacity: 0;
           }
         }
+        .civiq-leaflet-popup .leaflet-popup-content-wrapper {
+          background: #0B0E13 !important;
+          color: #FFFFFF !important;
+          border: 1px solid rgba(255, 255, 255, 0.08) !important;
+          border-radius: 14px !important;
+          padding: 6px !important;
+          box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6) !important;
+        }
+        .civiq-leaflet-popup .leaflet-popup-tip {
+          background: #0B0E13 !important;
+          border: 1px solid rgba(255, 255, 255, 0.08) !important;
+        }
+        .civiq-leaflet-popup .leaflet-popup-close-button {
+          color: #A0AEC0 !important;
+          font-size: 16px !important;
+          padding: 8px !important;
+        }
       `
       document.head.appendChild(style)
     }
 
-    // Remove old markers
-    markersRef.current.forEach((m) => m.remove())
-    markersRef.current = []
+    const urlParams = new URLSearchParams(window.location.search)
+    const latParam = urlParams.get('lat')
+    const lngParam = urlParams.get('lng')
 
-    // Remove old hotspots
-    hotspotsRef.current.forEach((h) => h.remove())
-    hotspotsRef.current = []
-
-    if (reports.length === 0) return
-
-    const bounds = new mapboxgl.LngLatBounds()
-
-    // 1. Render normal report pins
-    reports.forEach((report) => {
-      if (!report.latitude || !report.longitude) return
-
-      const el = document.createElement('div')
-      el.className = 'civiq-marker'
-      const color = SEVERITY_COLORS[report.severity] ?? '#6b7280'
-      el.style.cssText = `
-        width: 14px; height: 14px; border-radius: 50%;
-        background: ${color}; border: 2px solid rgba(255,255,255,0.6);
-        box-shadow: 0 0 0 4px ${color}40;
-        cursor: pointer; transition: transform 0.15s;
-      `
-      el.addEventListener('mouseenter', () => {
-        el.style.transform = 'scale(1.5)'
+    if (latParam && lngParam) {
+      const lat = parseFloat(latParam)
+      const lng = parseFloat(lngParam)
+      if (!isNaN(lat) && !isNaN(lng)) {
+        map.setView([lat, lng], 14, { animate: true })
+      }
+    } else {
+      const validPoints: L.LatLngExpression[] = []
+      reports.forEach((r) => {
+        if (r.latitude && r.longitude && !isNaN(r.latitude) && !isNaN(r.longitude)) {
+          validPoints.push([r.latitude, r.longitude])
+        }
       })
-      el.addEventListener('mouseleave', () => {
-        el.style.transform = 'scale(1)'
+      hotspots.forEach((h) => {
+        if (h.latitude && h.longitude && !isNaN(h.latitude) && !isNaN(h.longitude)) {
+          validPoints.push([h.latitude, h.longitude])
+        }
       })
 
-      const popup = new mapboxgl.Popup({
-        offset: 14,
-        className: 'civiq-popup',
-        maxWidth: '240px',
-      }).setHTML(createPopupHTML(report))
-
-      const marker = new mapboxgl.Marker({ element: el })
-        .setLngLat([report.longitude, report.latitude])
-        .setPopup(popup)
-        .addTo(map)
-
-      markersRef.current.push(marker)
-      bounds.extend([report.longitude, report.latitude])
-    })
-
-    // 2. Render emergency pulsing hotspots
-    hotspots.forEach((hotspot) => {
-      if (!hotspot.latitude || !hotspot.longitude) return
-
-      const el = document.createElement('div')
-      el.className = 'civiq-hotspot-marker'
-      el.style.cssText = `
-        position: relative;
-        width: 44px; height: 44px;
-        display: flex; align-items: center; justify-content: center;
-        cursor: pointer;
-      `
-
-      const ring = document.createElement('div')
-      ring.style.cssText = `
-        position: absolute;
-        width: 100%; height: 100%;
-        border-radius: 50%;
-        background: rgba(239, 68, 68, 0.15);
-        border: 2px solid rgba(239, 68, 68, 0.7);
-        animation: civiq-pulse-radar 1.5s infinite ease-out;
-        pointer-events: none;
-      `
-
-      const dot = document.createElement('div')
-      dot.style.cssText = `
-        width: 12px; height: 12px;
-        border-radius: 50%;
-        background: #ef4444;
-        border: 2.5px solid white;
-        box-shadow: 0 0 12px rgba(239, 68, 68, 0.9);
-      `
-
-      el.appendChild(ring)
-      el.appendChild(dot)
-
-      const popup = new mapboxgl.Popup({
-        offset: 20,
-        className: 'civiq-popup',
-        maxWidth: '260px',
-      }).setHTML(`
-        <div style="font-family:system-ui,sans-serif;max-width:240px;padding:4px 0;">
-          <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px;color:#ef4444;">
-            <span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:#ef4444;flex-shrink:0;"></span>
-            <span style="font-size:13px;font-weight:700;line-height:1.3;text-transform:uppercase;">Emergency Hotspot</span>
-          </div>
-          <p style="font-size:11px;color:#d1d5db;margin-bottom:8px;">
-            Concentration of <strong>${hotspot.count}</strong> high-severity unresolved issues within a 150m radius.
-          </p>
-          <div style="font-size:11px;color:#9ca3af;margin-top:6px;max-height:85px;overflow-y:auto;border-top:1px solid rgba(255,255,255,0.1);padding-top:6px;">
-            ${hotspot.reports.map((r) => `• ${r.title}`).join('<br/>')}
-          </div>
-        </div>
-      `)
-
-      const marker = new mapboxgl.Marker({ element: el })
-        .setLngLat([hotspot.longitude, hotspot.latitude])
-        .setPopup(popup)
-        .addTo(map)
-
-      hotspotsRef.current.push(marker)
-      bounds.extend([hotspot.longitude, hotspot.latitude])
-    })
-
-    if (!bounds.isEmpty()) {
-      map.fitBounds(bounds, { padding: 80, maxZoom: 14, duration: 800 })
+      if (validPoints.length > 0) {
+        const bounds = L.latLngBounds(validPoints)
+        map.fitBounds(bounds, { padding: [40, 40], maxZoom: 14 })
+      }
     }
-  }, [reports, hotspots])
+  }, [reports, hotspots, map])
 
-  const hasToken = !!process.env.NEXT_PUBLIC_MAPBOX_TOKEN
+  return null
+}
 
-  if (!hasToken) {
-    return (
-      <div className="flex h-full items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-sm text-muted-foreground">
-        <p>Set <code className="rounded bg-white/10 px-1.5 py-0.5 text-xs">NEXT_PUBLIC_MAPBOX_TOKEN</code> to enable the map.</p>
-      </div>
-    )
-  }
+export function MapView({ reports, hotspots = [] }: MapViewProps) {
+  const [mapCenter, setMapCenter] = useState<[number, number]>([28.6139, 77.209]) // New Delhi default
+  const [mapZoom, setMapZoom] = useState<number>(11)
+
+  useEffect(() => {
+    const urlParams = new URLSearchParams(window.location.search)
+    const latParam = urlParams.get('lat')
+    const lngParam = urlParams.get('lng')
+
+    if (latParam && lngParam) {
+      const lat = parseFloat(latParam)
+      const lng = parseFloat(lngParam)
+      if (!isNaN(lat) && !isNaN(lng)) {
+        setMapCenter([lat, lng])
+        setMapZoom(14)
+      }
+    }
+  }, [])
 
   return (
-    <div
-      ref={containerRef}
-      className="h-full w-full rounded-2xl overflow-hidden"
-      aria-label="Community issues map"
-    />
+    <div className="h-full w-full rounded-3xl overflow-hidden border border-white/8 bg-[#0B0E13]">
+      <MapContainer
+        center={mapCenter}
+        zoom={mapZoom}
+        zoomControl={true}
+        className="h-full w-full"
+      >
+        <TileLayer
+          url="https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png"
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>'
+        />
+
+        <MapController reports={reports} hotspots={hotspots} />
+
+        {/* 1. Report Pins with Clustering */}
+        <MarkerClusterGroup chunkedLoading>
+          {reports.map((report) => {
+            if (!report.latitude || !report.longitude || isNaN(report.latitude) || isNaN(report.longitude)) {
+              return null
+            }
+
+            const color = SEVERITY_COLORS[report.severity] ?? '#64748B'
+            const trust = calculateTrustScore({
+              verifications: report.verification_count,
+              votes: report.vote_count,
+              comments: report.comment_count,
+              createdAt: report.created_at,
+            })
+
+            const trustBadgeStyles =
+              trust.label === 'High Trust'
+                ? { backgroundColor: 'rgba(0,200,150,0.1)', color: '#00C896', border: '1px solid rgba(0,200,150,0.2)' }
+                : trust.label === 'Medium Trust'
+                  ? { backgroundColor: 'rgba(245,158,11,0.1)', color: '#F59E0B', border: '1px solid rgba(245,158,11,0.2)' }
+                  : { backgroundColor: 'rgba(239,68,68,0.1)', color: '#EF4444', border: '1px solid rgba(239,68,68,0.2)' }
+
+            const customIcon = L.divIcon({
+              className: 'civiq-report-marker',
+              html: `<div style="
+                width: 13px; height: 13px; border-radius: 50%;
+                background: ${color}; border: 2.5px solid #0B0E13;
+                box-shadow: 0 0 10px ${color}80;
+                transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+              "></div>`,
+              iconSize: [13, 13],
+              iconAnchor: [6.5, 6.5],
+              popupAnchor: [0, -10],
+            })
+
+            return (
+              <Marker
+                key={report.id}
+                position={[report.latitude, report.longitude]}
+                icon={customIcon}
+                eventHandlers={{
+                  mouseover: (e) => {
+                    const el = e.target.getElement()?.querySelector('div')
+                    if (el) {
+                      el.style.transform = 'scale(1.4)'
+                      el.style.boxShadow = `0 0 18px ${color}`
+                    }
+                  },
+                  mouseout: (e) => {
+                    const el = e.target.getElement()?.querySelector('div')
+                    if (el) {
+                      el.style.transform = 'scale(1)'
+                      el.style.boxShadow = `0 0 10px ${color}80`
+                    }
+                  },
+                }}
+              >
+                <Popup className="civiq-leaflet-popup">
+                  <div style={{ fontFamily: "'Geist','Inter',sans-serif", maxWidth: '240px', padding: '4px', color: '#FFFFFF', background: '#0B0E13' }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: '8px', marginBottom: '8px' }}>
+                      <span style={{ display: 'inline-block', width: '10px', height: '10px', borderRadius: '50%', background: color, flexShrink: 0, marginTop: '4px', boxShadow: `0 0 8px ${color}` }}></span>
+                      <span style={{ fontSize: '13px', fontWeight: 800, lineHeight: 1.3, color: '#FFFFFF' }}>{report.title}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '5px', flexWrap: 'wrap', marginBottom: '10px' }}>
+                      <span style={{ background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.08)', color: '#A0AEC0', borderRadius: '99px', padding: '1px 7px', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{report.category}</span>
+                      <span style={{ background: `${color}15`, color: color, border: `1px solid ${color}35`, borderRadius: '99px', padding: '1px 7px', fontSize: '9px', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{report.severity}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '8px' }}>
+                      <span style={{ fontSize: '10px', color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginRight: '8px' }}>Trust Rating</span>
+                      <span style={{ borderRadius: '99px', padding: '1px 6px', fontSize: '9px', fontWeight: 800, textTransform: 'uppercase', letterSpacing: '0.5px', ...trustBadgeStyles }}>{trust.label}</span>
+                    </div>
+                    <a href={`/report/${report.id}`} style={{ display: 'inline-flex', alignItems: 'center', gap: '3px', fontSize: '11px', fontWeight: 700, color: '#00C896', textDecoration: 'none', marginTop: '2px', textTransform: 'uppercase', letterSpacing: '0.5px', transition: 'opacity 0.2s' }}>
+                      View Details &rarr;
+                    </a>
+                  </div>
+                </Popup>
+              </Marker>
+            )
+          })}
+        </MarkerClusterGroup>
+
+        {/* 2. Emergency Pulsing Hotspots */}
+        {hotspots.map((hotspot, idx) => {
+          if (!hotspot.latitude || !hotspot.longitude || isNaN(hotspot.latitude) || isNaN(hotspot.longitude)) {
+            return null
+          }
+
+          const hotspotIcon = L.divIcon({
+            className: 'civiq-leaflet-hotspot',
+            html: `
+              <div style="
+                position: relative;
+                width: 44px; height: 44px;
+                display: flex; align-items: center; justify-content: center;
+              ">
+                <div style="
+                  position: absolute;
+                  width: 100%; height: 100%;
+                  border-radius: 50%;
+                  background: rgba(239, 68, 68, 0.12);
+                  border: 2px solid rgba(239, 68, 68, 0.6);
+                  animation: civiq-pulse-radar 1.5s infinite ease-out;
+                  pointer-events: none;
+                "></div>
+                <div style="
+                  width: 12px; height: 12px;
+                  border-radius: 50%;
+                  background: #EF4444;
+                  border: 2px solid #FFFFFF;
+                  box-shadow: 0 0 14px rgba(239, 68, 68, 0.95);
+                "></div>
+              </div>
+            `,
+            iconSize: [44, 44],
+            iconAnchor: [22, 22],
+            popupAnchor: [0, -18],
+          })
+
+          return (
+            <Marker
+              key={`hotspot-${idx}`}
+              position={[hotspot.latitude, hotspot.longitude]}
+              icon={hotspotIcon}
+            >
+              <Popup className="civiq-leaflet-popup">
+                <div style={{ fontFamily: "'Geist','Inter',sans-serif", maxWidth: '240px', padding: '4px', color: '#FFFFFF', background: '#0B0E13' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px', color: '#EF4444' }}>
+                    <span style={{ display: 'inline-block', width: '8px', height: '8px', borderRadius: '50%', background: '#EF4444', flexShrink: 0, boxShadow: '0 0 8px #EF4444' }}></span>
+                    <span style={{ fontSize: '12px', fontWeight: 900, textTransform: 'uppercase', letterSpacing: '0.5px' }}>Emergency Hotspot</span>
+                  </div>
+                  <p style={{ fontSize: '11px', color: '#A0AEC0', marginBottom: '10px', lineHeight: 1.4 }}>
+                    Concentration of <strong>{hotspot.count}</strong> high-severity unresolved issues within a 150m radius.
+                  </p>
+                  <div style={{ fontSize: '10px', color: '#64748B', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', borderTop: '1px solid rgba(255,255,255,0.06)', paddingTop: '8px', marginBottom: '4px' }}>Seeded Reports</div>
+                  <div style={{ fontSize: '11px', color: '#FFFFFF', maxHeight: '85px', overflowY: 'auto', lineHeight: 1.5 }}>
+                    {hotspot.reports.map((r) => `• ${r.title}`).join('<br/>')}
+                  </div>
+                </div>
+              </Popup>
+            </Marker>
+          )
+        })}
+      </MapContainer>
+    </div>
   )
 }

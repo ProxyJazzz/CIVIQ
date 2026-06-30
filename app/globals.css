@@ -1,68 +1,40 @@
+@import url('https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700;800;900&family=Inter:wght@300;400;500;600;700;800;900&display=swap');
+
 @import 'tailwindcss/base';
 @import 'tailwindcss/components';
 @import 'tailwindcss/utilities';
 
 @layer base {
-  :root {
-    --background: 0 0% 100%;
-    --foreground: 0 0% 3.6%;
+  :root, .dark {
+    --background: 225 33% 4%; /* #050608 */
+    --foreground: 0 0% 100%; /* #FFFFFF */
 
-    --card: 0 0% 100%;
-    --card-foreground: 0 0% 3.6%;
+    --card: 218 25% 6%; /* #0B0E13 */
+    --card-foreground: 0 0% 100%;
 
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.6%;
+    --popover: 218 25% 6%; /* #0B0E13 */
+    --popover-foreground: 0 0% 100%;
 
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
+    --muted: 220 27% 10%; /* #12161F */
+    --muted-foreground: 215 16% 65%; /* #A0AEC0 secondary text */
 
-    --accent: 0 0% 9.0%;
-    --accent-foreground: 0 0% 100%;
+    --accent: 165 100% 39%; /* #00C896 brand green */
+    --accent-foreground: 225 33% 4%;
 
-    --destructive: 0 84.2% 60.2%;
+    --destructive: 0 84% 60%; /* #EF4444 */
     --destructive-foreground: 0 0% 100%;
 
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 0 0% 3.6%;
+    --border: 218 25% 12%; /* dark gray/blue */
+    --input: 218 25% 12%;
+    --ring: 165 100% 39%;
 
-    --radius: 0.5rem;
+    --radius: 0.85rem;
 
-    --primary: 0 0% 9.0%;
-    --primary-foreground: 0 0% 100%;
+    --primary: 0 0% 100%;
+    --primary-foreground: 225 33% 4%;
 
-    --secondary: 0 0% 96.1%;
-    --secondary-foreground: 0 0% 9.0%;
-  }
-
-  .dark {
-    --background: 0 0% 3.6%;
-    --foreground: 0 0% 98.2%;
-
-    --card: 0 0% 3.6%;
-    --card-foreground: 0 0% 98.2%;
-
-    --popover: 0 0% 3.6%;
-    --popover-foreground: 0 0% 98.2%;
-
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-
-    --accent: 0 0% 98.2%;
-    --accent-foreground: 0 0% 9.0%;
-
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 0 0% 9.0%;
-
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 0 0% 83.1%;
-
-    --primary: 0 0% 98.2%;
-    --primary-foreground: 0 0% 9.0%;
-
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98.2%;
+    --secondary: 220 27% 10%; /* #12161F */
+    --secondary-foreground: 214 20% 69%; /* #A0AEC0 */
   }
 }
 
@@ -71,28 +43,89 @@
     @apply border-border;
   }
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-family: 'Geist', 'Inter', sans-serif;
   }
 }
 
-/* ── Mapbox popup dark theme ── */
-.mapboxgl-popup-content {
-  background: hsl(0 0% 8%) !important;
-  color: hsl(0 0% 95%) !important;
-  border: 1px solid hsl(0 0% 18%) !important;
-  border-radius: 12px !important;
-  padding: 12px 14px !important;
-  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5) !important;
+/* ── Custom UI Utilities (Design System v2) ── */
+.glass-panel {
+  background: rgba(11, 14, 19, 0.7);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
 }
 
-.mapboxgl-popup-tip {
-  border-top-color: hsl(0 0% 8%) !important;
-  border-bottom-color: hsl(0 0% 8%) !important;
+.glass-card {
+  background: rgba(18, 22, 31, 0.55);
+  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
 }
 
-.mapboxgl-popup-close-button {
-  color: hsl(0 0% 60%) !important;
-  font-size: 16px !important;
-  right: 6px !important;
-  top: 4px !important;
+.glow-accent {
+  box-shadow: 0 0 20px rgba(0, 200, 150, 0.15);
+}
+
+.glow-blue {
+  box-shadow: 0 0 20px rgba(59, 130, 246, 0.15);
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+/* Hide scrollbar for IE, Edge and Firefox */
+.no-scrollbar {
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+
+/* Custom animated background grid */
+.bg-grid-pattern {
+  background-size: 50px 50px;
+  background-image: 
+    linear-gradient(to right, rgba(255, 255, 255, 0.02) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.02) 1px, transparent 1px);
+}
+
+
+
+/* ── Custom visual enhancements for Sprint 4 ── */
+.premium-border-glow {
+  position: relative;
+}
+
+.premium-border-glow::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(
+    135deg,
+    rgba(0, 200, 150, 0.22),
+    rgba(59, 130, 246, 0.18),
+    transparent 65%
+  );
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+  opacity: 0.75;
+}
+
+.premium-border-glow:hover::after {
+  opacity: 1;
+}
+
+.animate-text-gradient {
+  background-size: 200% auto;
+  animation: textShine 4s linear infinite;
+}
+
+@keyframes textShine {
+  to {
+    background-position: 200% center;
+  }
 }

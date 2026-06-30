@@ -18,8 +18,6 @@ export function useRealtimeFeed({ filters, userId }: UseRealtimeFeedOptions) {
   const supabase = createClient()
 
   useEffect(() => {
-    const queryKey = [REPORTS_QUERY_KEY, filters, userId]
-
     const channel = supabase
       .channel('realtime:reports')
       .on(
@@ -62,18 +60,31 @@ export function useRealtimeFeed({ filters, userId }: UseRealtimeFeedOptions) {
                 user_has_verified,
               }
 
-              queryClient.setQueryData<InfiniteData<FeedPage>>(queryKey, (old) => {
-                if (!old) return old
-                const newPages = [...old.pages]
-                if (newPages.length === 0) {
-                  newPages.push({ reports: [finalReport], nextCursor: null })
-                } else {
-                  newPages[0] = {
-                    ...newPages[0],
-                    reports: [finalReport, ...newPages[0].reports],
-                  }
+              // Update all matching query caches dynamically based on query filters
+              const queries = queryClient.getQueryCache().findAll({ queryKey: [REPORTS_QUERY_KEY] })
+              queries.forEach((query) => {
+                const queryKey = query.queryKey
+                const queryFilters = queryKey[1] as FeedFilters | undefined
+
+                const matchesCategory = !queryFilters?.category || queryFilters.category === 'all' || queryFilters.category === finalReport.category
+                const matchesSeverity = !queryFilters?.severity || queryFilters.severity === 'all' || queryFilters.severity === finalReport.severity
+                const matchesStatus = !queryFilters?.status || queryFilters.status === 'all' || queryFilters.status === finalReport.status
+
+                if (matchesCategory && matchesSeverity && matchesStatus) {
+                  queryClient.setQueryData<InfiniteData<FeedPage>>(queryKey, (old) => {
+                    if (!old) return old
+                    const newPages = [...old.pages]
+                    if (newPages.length === 0) {
+                      newPages.push({ reports: [finalReport], nextCursor: null })
+                    } else {
+                      newPages[0] = {
+                        ...newPages[0],
+                        reports: [finalReport, ...newPages[0].reports],
+                      }
+                    }
+                    return { ...old, pages: newPages }
+                  })
                 }
-                return { ...old, pages: newPages }
               })
             }
           } else if (payload.eventType === 'UPDATE') {
@@ -112,30 +123,39 @@ export function useRealtimeFeed({ filters, userId }: UseRealtimeFeedOptions) {
                 user_has_verified,
               }
 
+              // Update all matching query caches
+              const queries = queryClient.getQueryCache().findAll({ queryKey: [REPORTS_QUERY_KEY] })
+              queries.forEach((query) => {
+                const queryKey = query.queryKey
+                queryClient.setQueryData<InfiniteData<FeedPage>>(queryKey, (old) => {
+                  if (!old) return old
+                  return {
+                    ...old,
+                    pages: old.pages.map((page) => ({
+                      ...page,
+                      reports: page.reports.map((r) =>
+                        r.id === finalReport.id ? finalReport : r
+                      ),
+                    })),
+                  }
+                })
+              })
+            }
+          } else if (payload.eventType === 'DELETE') {
+            const reportId = payload.old.id
+            const queries = queryClient.getQueryCache().findAll({ queryKey: [REPORTS_QUERY_KEY] })
+            queries.forEach((query) => {
+              const queryKey = query.queryKey
               queryClient.setQueryData<InfiniteData<FeedPage>>(queryKey, (old) => {
                 if (!old) return old
                 return {
                   ...old,
                   pages: old.pages.map((page) => ({
                     ...page,
-                    reports: page.reports.map((r) =>
-                      r.id === finalReport.id ? finalReport : r
-                    ),
+                    reports: page.reports.filter((r) => r.id !== reportId),
                   })),
                 }
               })
-            }
-          } else if (payload.eventType === 'DELETE') {
-            const reportId = payload.old.id
-            queryClient.setQueryData<InfiniteData<FeedPage>>(queryKey, (old) => {
-              if (!old) return old
-              return {
-                ...old,
-                pages: old.pages.map((page) => ({
-                  ...page,
-                  reports: page.reports.filter((r) => r.id !== reportId),
-                })),
-              }
             })
           }
         }
@@ -145,7 +165,7 @@ export function useRealtimeFeed({ filters, userId }: UseRealtimeFeedOptions) {
     return () => {
       void supabase.removeChannel(channel)
     }
-  }, [filters, userId, queryClient, supabase])
+  }, [userId, queryClient])
 
   return queryResult
 }

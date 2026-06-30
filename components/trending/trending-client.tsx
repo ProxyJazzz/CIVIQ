@@ -1,6 +1,5 @@
 'use client'
 
-import { motion } from 'framer-motion'
 import {
   TrendingUp,
   Activity,
@@ -15,7 +14,7 @@ import {
   ThumbsUp,
 } from 'lucide-react'
 import Link from 'next/link'
-import Image from 'next/image'
+import { SafeImage } from '@/components/shared/safe-image'
 
 import type { TrendingAnalytics } from '@/lib/analytics/trending'
 import { Badge } from '@/components/shared/badge'
@@ -45,107 +44,87 @@ export function TrendingClient({ initialAnalytics }: TrendingClientProps) {
     .join(' ')
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 max-w-7xl mx-auto px-4 py-6">
       {/* Header */}
-      <div>
-        <div className="flex items-center gap-2 text-primary">
-          <Activity className="h-5 w-5 animate-pulse" />
-          <span className="text-xs font-semibold uppercase tracking-wider">CIVIQ Intelligence</span>
+      <div className="space-y-1">
+        <div className="flex items-center gap-2 text-accent">
+          <Activity className="h-4 w-4 animate-pulse" />
+          <span className="text-[10px] font-black uppercase tracking-widest">CIVIQ Intelligence Desk</span>
         </div>
-        <h1 className="mt-1 text-3xl font-bold tracking-tight md:text-4xl bg-gradient-to-r from-foreground via-foreground/90 to-muted-foreground bg-clip-text text-transparent">
-          Hyperlocal Analytics Engine
+        <h1 className="text-xl md:text-2xl font-black text-white uppercase tracking-tight">
+          Trending Analytics Engine
         </h1>
-        <p className="mt-2 text-muted-foreground">
-          Real-time tracking of civic reports, municipal performance routing, and issue severity clusters.
+        <p className="text-xs text-muted-foreground leading-relaxed">
+          Real-time tracking of community incident reports, municipal department dispatches, and resolution velocities.
         </p>
       </div>
 
       {/* Summary Stats Grid */}
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
         {/* Total Issues Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3 }}
-          className="relative overflow-hidden rounded-xl border bg-card/45 p-6 backdrop-blur-sm"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-muted-foreground">Total Reports</span>
-            <div className="rounded-lg bg-primary/10 p-2 text-primary">
-              <TrendingUp className="h-5 w-5" />
+        <div className="glass-card rounded-2xl border border-white/5 bg-[#0B0E13]/60 p-6 flex flex-col justify-between shadow-xl">
+          <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+            <span>Total Reports</span>
+            <div className="rounded-lg bg-white/5 p-2 text-white/70">
+              <TrendingUp className="h-4 w-4" />
             </div>
           </div>
-          <div className="mt-4">
-            <span className="text-3xl font-bold">{summary.totalReports}</span>
-            <p className="text-xs text-muted-foreground mt-1">Issues submitted by community</p>
+          <div className="mt-4 space-y-1">
+            <div className="text-2xl font-black text-white tracking-tight tabular-nums">{summary.totalReports}</div>
+            <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">Submitted by community</p>
           </div>
-        </motion.div>
+        </div>
 
         {/* Active Issues Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.05 }}
-          className="relative overflow-hidden rounded-xl border bg-card/45 p-6 backdrop-blur-sm"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-muted-foreground">Active Issues</span>
-            <div className="rounded-lg bg-amber-500/10 p-2 text-amber-500">
-              <AlertTriangle className="h-5 w-5" />
+        <div className="glass-card rounded-2xl border border-white/5 bg-[#0B0E13]/60 p-6 flex flex-col justify-between shadow-xl">
+          <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+            <span>Active Issues</span>
+            <div className="rounded-lg bg-amber-500/10 p-2 text-amber-400">
+              <AlertTriangle className="h-4 w-4" />
             </div>
           </div>
-          <div className="mt-4">
-            <span className="text-3xl font-bold">
+          <div className="mt-4 space-y-1">
+            <div className="text-2xl font-black text-white tracking-tight tabular-nums">
               {summary.pendingReports + summary.inProgressReports}
-            </span>
-            <p className="text-xs text-muted-foreground mt-1">
-              {summary.inProgressReports} in progress, {summary.pendingReports} pending
+            </div>
+            <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">
+              {summary.inProgressReports} in progress &middot; {summary.pendingReports} pending
             </p>
           </div>
-        </motion.div>
+        </div>
 
         {/* Resolution Rate Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.1 }}
-          className="relative overflow-hidden rounded-xl border bg-card/45 p-6 backdrop-blur-sm"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-muted-foreground">Resolution Rate</span>
-            <div className="rounded-lg bg-emerald-500/10 p-2 text-emerald-500">
-              <CheckCircle className="h-5 w-5" />
+        <div className="glass-card rounded-2xl border border-white/5 bg-[#0B0E13]/60 p-6 flex flex-col justify-between shadow-xl">
+          <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+            <span>Resolution Rate</span>
+            <div className="rounded-lg bg-accent/10 p-2 text-accent">
+              <CheckCircle className="h-4 w-4" />
             </div>
           </div>
-          <div className="mt-4 space-y-2">
+          <div className="mt-4 space-y-3">
             <div className="flex items-baseline gap-2">
-              <span className="text-3xl font-bold">{resolutionRate}%</span>
-              <span className="text-xs text-muted-foreground">
+              <span className="text-2xl font-black text-white tracking-tight tabular-nums">{resolutionRate}%</span>
+              <span className="text-[10px] text-muted-foreground uppercase font-bold">
                 ({summary.resolvedReports} resolved)
               </span>
             </div>
-            <Progress value={resolutionRate} className="h-1.5" />
+            <Progress value={resolutionRate} className="h-1 bg-white/10" />
           </div>
-        </motion.div>
+        </div>
 
         {/* Average Trust Score Card */}
-        <motion.div
-          initial={{ opacity: 0, y: 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.3, delay: 0.15 }}
-          className="relative overflow-hidden rounded-xl border bg-card/45 p-6 backdrop-blur-sm"
-        >
-          <div className="flex items-center justify-between">
-            <span className="text-sm font-medium text-muted-foreground">Avg Trust Index</span>
-            <div className="rounded-lg bg-cyan-500/10 p-2 text-cyan-500">
-              <Users className="h-5 w-5" />
+        <div className="glass-card rounded-2xl border border-white/5 bg-[#0B0E13]/60 p-6 flex flex-col justify-between shadow-xl">
+          <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+            <span>Avg Trust Index</span>
+            <div className="rounded-lg bg-blue-500/10 p-2 text-blue-400">
+              <Users className="h-4 w-4" />
             </div>
           </div>
-          <div className="mt-4">
-            <span className="text-3xl font-bold">{summary.averageTrustScore}/10</span>
-            <p className="text-xs text-muted-foreground mt-1">Weighted community verification index</p>
+          <div className="mt-4 space-y-1">
+            <div className="text-2xl font-black text-white tracking-tight tabular-nums">{summary.averageTrustScore}/10</div>
+            <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wide">Citizen verification score</p>
           </div>
-        </motion.div>
+        </div>
       </div>
 
       {/* Main Layout Grid */}
@@ -153,13 +132,13 @@ export function TrendingClient({ initialAnalytics }: TrendingClientProps) {
         {/* Left Column (2 cols wide) - Activity & Hot Issues */}
         <div className="space-y-6 lg:col-span-2">
           {/* Recent Activity Graph */}
-          <div className="rounded-xl border bg-card/30 p-6 backdrop-blur-sm">
-            <h2 className="text-lg font-semibold tracking-tight">Recent Report Velocity</h2>
-            <p className="text-xs text-muted-foreground mb-4">Volume of issues reported daily over the past week</p>
+          <div className="glass-card rounded-3xl border border-white/8 bg-[#0B0E13]/60 p-6 shadow-xl">
+            <h2 className="text-sm font-black uppercase tracking-wider text-white">Recent Report Velocity</h2>
+            <p className="text-[10px] text-muted-foreground mb-4 font-semibold uppercase tracking-wider">Volume of issues reported daily over the past week</p>
 
             <div className="relative h-32 w-full mt-6">
               {summary.totalReports === 0 ? (
-                <div className="flex h-full items-center justify-center text-sm text-muted-foreground">
+                <div className="flex h-full items-center justify-center text-xs font-bold text-muted-foreground uppercase">
                   No reporting activity recorded yet.
                 </div>
               ) : (
@@ -168,8 +147,8 @@ export function TrendingClient({ initialAnalytics }: TrendingClientProps) {
                     {/* SVG Gradients */}
                     <defs>
                       <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity="0.2" />
-                        <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity="0" />
+                        <stop offset="0%" stopColor="#00C896" stopOpacity="0.25" />
+                        <stop offset="100%" stopColor="#00C896" stopOpacity="0" />
                       </linearGradient>
                     </defs>
 
@@ -182,14 +161,14 @@ export function TrendingClient({ initialAnalytics }: TrendingClientProps) {
                     {/* Curve line */}
                     <polyline
                       fill="none"
-                      stroke="hsl(var(--primary))"
-                      strokeWidth="2"
+                      stroke="#00C896"
+                      strokeWidth="2.5"
                       points={points}
                     />
 
                     {/* Grid lines */}
-                    <line x1="0" y1="20" x2="500" y2="20" stroke="rgba(255,255,255,0.05)" strokeDasharray="3" />
-                    <line x1="0" y1="60" x2="500" y2="60" stroke="rgba(255,255,255,0.05)" strokeDasharray="3" />
+                    <line x1="0" y1="20" x2="500" y2="20" stroke="rgba(255,255,255,0.03)" strokeDasharray="3" />
+                    <line x1="0" y1="60" x2="500" y2="60" stroke="rgba(255,255,255,0.03)" strokeDasharray="3" />
                   </svg>
 
                   {/* Dots for daily nodes */}
@@ -207,8 +186,8 @@ export function TrendingClient({ initialAnalytics }: TrendingClientProps) {
                             transform: 'translate(-50%, -50%)',
                           }}
                         >
-                          <div className="h-2 w-2 rounded-full border border-primary bg-background transition-transform group-hover:scale-150" />
-                          <div className="pointer-events-none absolute bottom-4 opacity-0 transition-opacity group-hover:opacity-100 bg-background/95 border px-2 py-0.5 rounded text-[10px] whitespace-nowrap shadow-md z-10">
+                          <div className="h-2 w-2 rounded-full border border-accent bg-[#050608] transition-transform group-hover:scale-150 shadow-md shadow-accent" />
+                          <div className="pointer-events-none absolute bottom-4 opacity-0 transition-opacity group-hover:opacity-100 bg-[#0B0E13] border border-white/8 px-2 py-0.5 rounded text-[10px] font-bold text-white whitespace-nowrap shadow-xl z-10">
                             {point.count} issues
                           </div>
                         </div>
@@ -220,7 +199,7 @@ export function TrendingClient({ initialAnalytics }: TrendingClientProps) {
             </div>
 
             {/* Daily labels */}
-            <div className="flex justify-between text-[10px] text-muted-foreground mt-2 border-t pt-2">
+            <div className="flex justify-between text-[9px] font-black text-muted-foreground uppercase tracking-widest mt-2 border-t border-white/5 pt-2">
               {activity.map((d, index) => (
                 <span key={index}>{d.date}</span>
               ))}
@@ -228,28 +207,26 @@ export function TrendingClient({ initialAnalytics }: TrendingClientProps) {
           </div>
 
           {/* Hot / Trending Issues */}
-          <div className="rounded-xl border bg-card/30 p-6 backdrop-blur-sm space-y-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h2 className="text-lg font-semibold tracking-tight">Active Hotspots</h2>
-                <p className="text-xs text-muted-foreground">Civic issues receiving high community traction</p>
-              </div>
+          <div className="glass-card rounded-3xl border border-white/8 bg-[#0B0E13]/60 p-6 shadow-xl space-y-4">
+            <div>
+              <h2 className="text-sm font-black uppercase tracking-wider text-white">Active Hotspots</h2>
+              <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Civic issues receiving high community traction</p>
             </div>
 
             <div className="space-y-4">
               {hotIssues.length === 0 ? (
-                <div className="text-center py-10 text-sm text-muted-foreground">
+                <div className="text-center py-10 text-xs font-bold text-muted-foreground uppercase">
                   No active reports found. Create one to see it trending!
                 </div>
               ) : (
                 hotIssues.map((report) => (
-                  <motion.div
+                  <div
                     key={report.id}
-                    className="flex flex-col md:flex-row gap-4 p-4 rounded-lg border bg-card/20 hover:bg-card/45 transition-colors"
+                    className="flex flex-col md:flex-row gap-4 p-4 rounded-2xl border border-white/5 bg-[#0B0E13]/30 hover:bg-white/5 transition-all duration-200"
                   >
                     {/* Thumbnail Image */}
-                    <div className="relative h-24 w-full md:w-36 overflow-hidden rounded-md border shrink-0">
-                      <Image
+                    <div className="relative h-24 w-full md:w-36 overflow-hidden rounded-xl border border-white/5 shrink-0 bg-[#050608]">
+                      <SafeImage
                         src={report.image_url}
                         alt={report.title}
                         fill
@@ -259,9 +236,9 @@ export function TrendingClient({ initialAnalytics }: TrendingClientProps) {
                     </div>
 
                     {/* Metadata */}
-                    <div className="flex-1 space-y-2">
-                      <div className="flex flex-wrap items-center gap-2">
-                        <Badge variant="category">{report.category}</Badge>
+                    <div className="flex-1 space-y-2 min-w-0">
+                      <div className="flex flex-wrap items-center gap-1.5">
+                        <Badge variant="category" className="font-bold text-[9px] uppercase tracking-wider">{report.category}</Badge>
                         <Badge
                           variant={
                             report.severity === 'High'
@@ -270,20 +247,21 @@ export function TrendingClient({ initialAnalytics }: TrendingClientProps) {
                               ? 'severity-medium'
                               : 'severity-low'
                           }
+                          className="font-bold text-[9px] uppercase tracking-wider"
                         >
                           {report.severity}
                         </Badge>
-                        <span className="text-[10px] text-muted-foreground ml-auto">
+                        <span className="text-[10px] text-muted-foreground ml-auto truncate max-w-[150px]">
                           {report.address}
                         </span>
                       </div>
 
-                      <h3 className="font-semibold text-sm line-clamp-1">{report.title}</h3>
-                      <p className="text-xs text-muted-foreground line-clamp-2">
+                      <h3 className="font-bold text-xs sm:text-sm text-white line-clamp-1">{report.title}</h3>
+                      <p className="text-xs text-muted-foreground line-clamp-2 leading-relaxed">
                         {report.ai_summary || report.summary}
                       </p>
 
-                      <div className="flex items-center justify-between pt-1 border-t text-[11px] text-muted-foreground">
+                      <div className="flex items-center justify-between pt-2 border-t border-white/5 text-[10px] text-muted-foreground font-bold uppercase tracking-wider">
                         <div className="flex gap-4">
                           <span className="flex items-center gap-1">
                             <ThumbsUp className="h-3 w-3" /> {report.vote_count}
@@ -292,22 +270,22 @@ export function TrendingClient({ initialAnalytics }: TrendingClientProps) {
                             <MessageSquare className="h-3 w-3" /> {report.comment_count}
                           </span>
                           <span className="flex items-center gap-1">
-                            <Shield className="h-3 w-3 text-cyan-500" />
+                            <Shield className="h-3 w-3 text-accent" />
                             {report.verification_count} verified
                           </span>
                         </div>
 
                         <Link
                           href={`/report/${report.id}`}
-                          className="flex items-center gap-0.5 text-primary hover:underline font-medium"
+                          className="flex items-center gap-0.5 text-accent hover:underline font-black"
                         >
                           Analyze <ArrowRight className="h-3 w-3" />
                         </Link>
                       </div>
                     </div>
-                  </motion.div>
-                ))
-              )}
+                  </div>
+                )
+              ))}
             </div>
           </div>
         </div>
@@ -315,28 +293,28 @@ export function TrendingClient({ initialAnalytics }: TrendingClientProps) {
         {/* Right Column (1 col wide) - Category, Dept, Severity breakdown */}
         <div className="space-y-6">
           {/* Issue Categories Breakdown */}
-          <div className="rounded-xl border bg-card/30 p-6 backdrop-blur-sm space-y-4">
+          <div className="glass-card rounded-3xl border border-white/8 bg-[#0B0E13]/60 p-6 shadow-xl space-y-4">
             <div>
-              <h2 className="text-lg font-semibold tracking-tight">Categories</h2>
-              <p className="text-xs text-muted-foreground">Classification breakdown of community complaints</p>
+              <h2 className="text-sm font-black uppercase tracking-wider text-white">Categories</h2>
+              <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Classification breakdown of complaints</p>
             </div>
 
-            <div className="space-y-3 pt-2">
+            <div className="space-y-4 pt-2">
               {categories.length === 0 ? (
-                <div className="text-sm text-muted-foreground py-4 text-center">No categories recorded.</div>
+                <div className="text-xs font-bold text-muted-foreground py-4 text-center uppercase">No categories recorded.</div>
               ) : (
                 categories.map((item, index) => (
-                  <div key={index} className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs font-medium">
-                      <span className="flex items-center gap-1.5">
-                        <Tag className="h-3 w-3 text-muted-foreground" />
+                  <div key={index} className="space-y-2">
+                    <div className="flex items-center justify-between text-[11px] font-bold">
+                      <span className="flex items-center gap-1.5 text-[#A0AEC0]">
+                        <Tag className="h-3 w-3 text-accent" />
                         {item.label}
                       </span>
-                      <span className="text-muted-foreground">
+                      <span className="text-white font-mono">
                         {item.count} ({item.percentage}%)
                       </span>
                     </div>
-                    <Progress value={item.percentage} className="h-1 bg-muted/65" />
+                    <Progress value={item.percentage} className="h-1 bg-white/5" />
                   </div>
                 ))
               )}
@@ -344,28 +322,28 @@ export function TrendingClient({ initialAnalytics }: TrendingClientProps) {
           </div>
 
           {/* Responsible Department Routing */}
-          <div className="rounded-xl border bg-card/30 p-6 backdrop-blur-sm space-y-4">
+          <div className="glass-card rounded-3xl border border-white/8 bg-[#0B0E13]/60 p-6 shadow-xl space-y-4">
             <div>
-              <h2 className="text-lg font-semibold tracking-tight">Routing & Department</h2>
-              <p className="text-xs text-muted-foreground">AI auto-assigned municipal responsibility routes</p>
+              <h2 className="text-sm font-black uppercase tracking-wider text-white">Department Routing</h2>
+              <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">AI auto-assigned municipal pathways</p>
             </div>
 
-            <div className="space-y-3 pt-2">
+            <div className="space-y-4 pt-2">
               {departments.length === 0 ? (
-                <div className="text-sm text-muted-foreground py-4 text-center">No department routes recorded.</div>
+                <div className="text-xs font-bold text-muted-foreground py-4 text-center uppercase">No department routes recorded.</div>
               ) : (
                 departments.map((item, index) => (
-                  <div key={index} className="space-y-1.5">
-                    <div className="flex items-center justify-between text-xs font-medium">
-                      <span className="flex items-center gap-1.5">
-                        <Building className="h-3 w-3 text-muted-foreground" />
+                  <div key={index} className="space-y-2">
+                    <div className="flex items-center justify-between text-[11px] font-bold">
+                      <span className="flex items-center gap-1.5 text-[#A0AEC0]">
+                        <Building className="h-3.5 w-3.5 text-blue-400" />
                         {item.label}
                       </span>
-                      <span className="text-muted-foreground">
+                      <span className="text-white font-mono">
                         {item.count} ({item.percentage}%)
                       </span>
                     </div>
-                    <Progress value={item.percentage} className="h-1 bg-cyan-500/20" />
+                    <Progress value={item.percentage} className="h-1 bg-white/5" />
                   </div>
                 ))
               )}
@@ -373,31 +351,31 @@ export function TrendingClient({ initialAnalytics }: TrendingClientProps) {
           </div>
 
           {/* Severity Clusters */}
-          <div className="rounded-xl border bg-card/30 p-6 backdrop-blur-sm space-y-4">
+          <div className="glass-card rounded-3xl border border-white/8 bg-[#0B0E13]/60 p-6 shadow-xl space-y-4">
             <div>
-              <h2 className="text-lg font-semibold tracking-tight">Urgency Clusters</h2>
-              <p className="text-xs text-muted-foreground">Proportion of high, medium, and low-priority issues</p>
+              <h2 className="text-sm font-black uppercase tracking-wider text-white">Urgency Clusters</h2>
+              <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider">Proportion of severity priorities</p>
             </div>
 
-            <div className="space-y-3 pt-2">
+            <div className="space-y-4 pt-2">
               {severities.length === 0 ? (
-                <div className="text-sm text-muted-foreground py-4 text-center">No severity metrics recorded.</div>
+                <div className="text-xs font-bold text-muted-foreground py-4 text-center uppercase">No severity metrics recorded.</div>
               ) : (
                 severities.map((item, index) => {
-                  let barColor = 'bg-primary'
+                  let barColor = 'bg-accent'
                   if (item.label === 'High') barColor = 'bg-rose-500'
                   else if (item.label === 'Medium') barColor = 'bg-amber-500'
-                  else if (item.label === 'Low') barColor = 'bg-emerald-500'
+                  else if (item.label === 'Low') barColor = 'bg-accent'
 
                   return (
-                    <div key={index} className="space-y-1.5">
-                      <div className="flex items-center justify-between text-xs font-medium">
-                        <span>{item.label} Severity</span>
-                        <span className="text-muted-foreground">
+                    <div key={index} className="space-y-2">
+                      <div className="flex items-center justify-between text-[11px] font-bold">
+                        <span className="text-[#A0AEC0]">{item.label} Severity</span>
+                        <span className="text-white font-mono">
                           {item.count} ({item.percentage}%)
                         </span>
                       </div>
-                      <div className="h-1.5 w-full rounded-full bg-muted/65 overflow-hidden">
+                      <div className="h-1.5 w-full rounded-full bg-white/5 overflow-hidden">
                         <div
                           className={`h-full ${barColor}`}
                           style={{ width: `${item.percentage}%` }}

@@ -1,3 +1,5 @@
+import { redirect } from "next/navigation"
+
 import { createClient } from "@/lib/supabase/server"
 import { getDepartments } from "@/lib/admin/get-departments"
 import { AdminDashboardClient } from "@/components/admin/admin-dashboard-client"
@@ -7,6 +9,27 @@ export const dynamic = "force-dynamic"
 
 export default async function AdminPage() {
   const supabase = await createClient()
+
+  // 1. Verify user session
+  const {
+    data: { user },
+    error: authError,
+  } = await supabase.auth.getUser()
+
+  if (authError || !user) {
+    redirect("/auth")
+  }
+
+  // 2. Query user profile role
+  const { data: profile, error: profileError } = await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id", user.id)
+    .single()
+
+  if (profileError || !profile || profile.role !== "admin") {
+    redirect("/feed")
+  }
 
   // Fetch all reports for administrative visibility
   const { data: reports, error } = await supabase

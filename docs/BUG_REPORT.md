@@ -1,4 +1,4 @@
-# BUG REPORT — CIVIQ PLATFORM (RC-1 AUDIT)
+# BUG REPORT — CIVIQ PLATFORM (RC-1 & RC-2 AUDIT)
 
 This document registers all audited bugs, diagnostic details, recommended resolutions, estimated efforts, and their current resolution status.
 
@@ -9,7 +9,7 @@ This document registers all audited bugs, diagnostic details, recommended resolu
 * **Affected Files**:
   * [report-form.tsx](file:///a:/Project/Vibe2Ship/CIVIQ/components/report/report-form.tsx)
 * **Root Cause**:
-  The form submission process only set the success state and kept the user on the submission page. It did not redirect the user to the newly generated report detail view (`/report/${id}`), breaking the user experience and user journey.
+  The form submission process only set the success state and kept the user on the submission page. It did not redirect the user to the newly generated report detail view (`/report/${id}`), breaking the user experience.
 * **Recommended Fix**:
   Import `useRouter` from `next/navigation` and call `router.push('/report/' + report.id)` after a 1.5-second delay upon successful submission.
 * **Estimated Effort**: 0.5 hours
@@ -62,8 +62,21 @@ This document registers all audited bugs, diagnostic details, recommended resolu
 * **Affected Files**:
   * `.env.local`
 * **Root Cause**:
-  The token `NEXT_PUBLIC_MAPBOX_TOKEN` is blank, which prevents Mapbox gl from loading style sheets and maps, prompting an instructional block.
+  The token `NEXT_PUBLIC_MAPBOX_TOKEN` is blank in default environments, which prevents Mapbox gl from loading style sheets and maps, prompting an instructional block.
 * **Recommended Fix**:
   Provide a valid Mapbox Public Access token in environment configuration.
 * **Estimated Effort**: 0.1 hours
 * **Status**: **Pending Environment Config**
+
+---
+
+### BUG-006: User Presence Foreign Key Constraint Violation
+* **Severity**: Critical (P1 Server/Client Crash)
+* **Affected Files**:
+  * [update-presence.ts](file:///a:/Project/Vibe2Ship/CIVIQ/lib/realtime/update-presence.ts)
+* **Root Cause**:
+  The `user_presence` table references `public.profiles(id)` via a foreign key constraint. When an authenticated user's presence was updated, if their record in `public.profiles` did not exist (due to signup delay, trigger delay, or manual creation in `auth.users`), the update failed with a foreign key constraint violation and crashed the server action response.
+* **Recommended Fix**:
+  Add a self-healing check inside `updatePresence` that queries `public.profiles`. If the user profile is missing, insert a default profile record dynamically before upserting the user presence state. Additionally, handle database errors gracefully and return status indicators instead of throwing raw exceptions.
+* **Estimated Effort**: 1 hour
+* **Status**: **Resolved**

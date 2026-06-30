@@ -19,8 +19,7 @@ import {
 } from "lucide-react"
 import { format } from "date-fns"
 import { toast } from "sonner"
-
-import { Card, CardContent, CardHeader } from "@/components/ui/card"
+import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
@@ -333,92 +332,68 @@ export function AdminDashboardClient({
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-6xl mx-auto px-4 py-6">
       <Tabs defaultValue="operations" className="w-full">
-        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b">
-          <TabsList>
-            <TabsTrigger value="operations">Report Operations</TabsTrigger>
-            <TabsTrigger value="announcements">Emergency Announcements</TabsTrigger>
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 pb-4 border-b border-white/5">
+          <TabsList className="glass-panel rounded-full p-1 bg-white/5 border border-white/8 self-start">
+            <TabsTrigger value="operations" className="rounded-full px-5 py-1.5 text-[10px] font-black uppercase tracking-wider transition-all data-[state=active]:bg-accent data-[state=active]:text-accent-foreground text-muted-foreground hover:text-white">Report Operations</TabsTrigger>
+            <TabsTrigger value="announcements" className="rounded-full px-5 py-1.5 text-[10px] font-black uppercase tracking-wider transition-all data-[state=active]:bg-accent data-[state=active]:text-accent-foreground text-muted-foreground hover:text-white">Emergency Alerts</TabsTrigger>
           </TabsList>
-          <div className="text-xs text-muted-foreground">
-            Logged in as Admin &middot; Real-time Active
+          <div className="text-[10px] font-extrabold uppercase tracking-widest text-muted-foreground">
+            Logged in as Dispatch Officer &middot; Real-time active
           </div>
         </div>
 
         <TabsContent value="operations" className="space-y-6 mt-6">
           {/* ── Metric Summary Cards ── */}
           <div className="grid gap-4 grid-cols-2 md:grid-cols-5">
-            <Card className="bg-background border shadow-sm">
-              <CardHeader className="p-4 flex flex-row items-center justify-between pb-2">
-                <span className="text-xs font-medium text-muted-foreground uppercase">Total</span>
-              </CardHeader>
-              <CardContent className="p-4 pt-0">
-                <div className="text-2xl font-bold">{counts.total}</div>
-              </CardContent>
-            </Card>
-            <Card className="bg-background border shadow-sm">
-              <CardHeader className="p-4 flex flex-row items-center justify-between pb-2">
-                <span className="text-xs font-medium text-neutral-500 uppercase">Pending</span>
-                <Clock className="h-4 w-4 text-neutral-500" />
-              </CardHeader>
-              <CardContent className="p-4 pt-0">
-                <div className="text-2xl font-bold text-neutral-500">{counts.pending}</div>
-              </CardContent>
-            </Card>
-            <Card className="bg-background border shadow-sm">
-              <CardHeader className="p-4 flex flex-row items-center justify-between pb-2">
-                <span className="text-xs font-medium text-sky-500 uppercase">Assigned</span>
-                <Building className="h-4 w-4 text-sky-500" />
-              </CardHeader>
-              <CardContent className="p-4 pt-0">
-                <div className="text-2xl font-bold text-sky-500">{counts.assigned}</div>
-              </CardContent>
-            </Card>
-            <Card className="bg-background border shadow-sm">
-              <CardHeader className="p-4 flex flex-row items-center justify-between pb-2">
-                <span className="text-xs font-medium text-amber-500 uppercase">In Progress</span>
-                <Play className="h-4 w-4 text-amber-500" />
-              </CardHeader>
-              <CardContent className="p-4 pt-0">
-                <div className="text-2xl font-bold text-amber-500">{counts.inProgress}</div>
-              </CardContent>
-            </Card>
-            <Card className="bg-background border shadow-sm">
-              <CardHeader className="p-4 flex flex-row items-center justify-between pb-2">
-                <span className="text-xs font-medium text-emerald-500 uppercase">Resolved</span>
-                <CheckCircle className="h-4 w-4 text-emerald-500" />
-              </CardHeader>
-              <CardContent className="p-4 pt-0">
-                <div className="text-2xl font-bold text-emerald-500">{counts.resolved}</div>
-              </CardContent>
-            </Card>
+            {[
+              { label: "Total Reports", value: counts.total, icon: <Building className="h-4 w-4 text-white" />, color: "text-white" },
+              { label: "Pending Verification", value: counts.pending, icon: <Clock className="h-4 w-4 text-muted-foreground" />, color: "text-muted-foreground" },
+              { label: "Assigned Dispatch", value: counts.assigned, icon: <Building className="h-4 w-4 text-blue-400" />, color: "text-blue-400" },
+              { label: "In Progress", value: counts.inProgress, icon: <Play className="h-4 w-4 text-amber-500" />, color: "text-amber-500" },
+              { label: "Resolved", value: counts.resolved, icon: <CheckCircle className="h-4 w-4 text-accent animate-pulse" />, color: "text-accent" }
+            ].map((stat, idx) => (
+              <div key={idx} className="glass-card rounded-2xl p-4 flex flex-col justify-between border border-white/5">
+                <div className="flex items-center justify-between text-[9px] font-bold text-muted-foreground uppercase tracking-widest">
+                  <span>{stat.label}</span>
+                  {stat.icon}
+                </div>
+                <div className={`text-2xl font-black ${stat.color} tracking-tighter mt-3 tabular-nums`}>{stat.value}</div>
+              </div>
+            ))}
           </div>
 
           {/* ── Operational Dual Pane ── */}
-          <div className="grid gap-6 lg:grid-cols-12 min-h-[600px]">
-            {/* Left list pane: lg=5 */}
+          <div className="grid gap-6 lg:grid-cols-12 min-h-[600px] items-start">
+            {/* Left List Pane: lg=5 */}
             <div className={`space-y-4 lg:col-span-5 ${selectedReportId ? "hidden lg:block" : "block"}`}>
-              <div className="flex flex-col gap-3 sm:flex-row lg:flex-col xl:flex-row">
+              <div className="flex flex-col gap-3">
                 {/* Search */}
-                <div className="relative flex-1">
-                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                <div className="relative w-full">
+                  <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                   <Input
-                    placeholder="Search reports..."
+                    placeholder="Filter incidents by title/address..."
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
-                    className="pl-9"
+                    className="pl-10"
                   />
                 </div>
 
-                {/* Status pills */}
-                <div className="flex gap-1 overflow-x-auto pb-1 scrollbar-none max-w-full">
+                {/* Status Pills */}
+                <div className="flex gap-1.5 overflow-x-auto pb-1 scrollbar-none max-w-full no-scrollbar">
                   {statusFilters.map((filter) => (
                     <Button
                       key={filter.value}
-                      variant={statusFilter === filter.value ? "default" : "outline"}
+                      variant="outline"
                       size="sm"
                       onClick={() => setStatusFilter(filter.value)}
-                      className="rounded-full text-xs whitespace-nowrap"
+                      className={cn(
+                        "rounded-full text-[9px] font-bold uppercase tracking-wider whitespace-nowrap h-7.5 px-3 border transition-all duration-200",
+                        statusFilter === filter.value
+                          ? "bg-accent text-accent-foreground border-accent/20"
+                          : "bg-white/5 border-white/5 text-muted-foreground hover:text-white"
+                      )}
                     >
                       {filter.label}
                     </Button>
@@ -426,40 +401,42 @@ export function AdminDashboardClient({
                 </div>
               </div>
 
-              <div className="space-y-3 overflow-y-auto max-h-[600px] pr-1">
+              {/* Reports Scrolling Container */}
+              <div className="space-y-3 overflow-y-auto max-h-[600px] pr-1 no-scrollbar">
                 {filteredReports.length === 0 ? (
-                  <div className="flex flex-col items-center justify-center p-8 text-center border rounded-xl bg-card">
-                    <AlertCircle className="h-8 w-8 text-muted-foreground opacity-50 mb-2" />
-                    <p className="text-sm text-muted-foreground font-medium">No reports match filters.</p>
+                  <div className="flex flex-col items-center justify-center p-8 text-center border border-white/8 bg-[#0B0E13]/60 rounded-3xl min-h-[200px]">
+                    <AlertCircle className="h-10 w-10 text-accent opacity-35 mb-2 animate-pulse" />
+                    <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">No reports match filters</p>
                   </div>
                 ) : (
                   filteredReports.map((report) => (
                     <div
                       key={report.id}
                       onClick={() => setSelectedReportId(report.id)}
-                      className={`group relative flex flex-col gap-3 rounded-xl border p-4 cursor-pointer transition-all duration-200 ${
+                      className={cn(
+                        "group relative flex flex-col gap-2.5 rounded-2xl border p-4 cursor-pointer transition-all duration-200",
                         selectedReportId === report.id
-                          ? "border-primary bg-primary/[0.03] dark:bg-primary/[0.01]"
-                          : "bg-card hover:bg-muted/30"
-                      }`}
+                          ? "border-accent/40 bg-accent/[0.03]"
+                          : "border-white/5 bg-[#0B0E13]/40 hover:bg-white/5 hover:border-white/10"
+                      )}
                     >
-                      <div className="flex items-start justify-between gap-2">
-                        <h3 className="font-semibold text-sm line-clamp-1 group-hover:underline">
+                      <div className="flex items-start justify-between gap-3">
+                        <h3 className="font-bold text-xs sm:text-sm line-clamp-1 text-white group-hover:text-accent transition-colors duration-200">
                           {report.title}
                         </h3>
-                        <div className="flex items-center gap-1.5 shrink-0">
+                        <div className="flex items-center gap-1 shrink-0">
                           {getSeverityBadge(report.severity)}
                           {getStatusBadge(report.status)}
                         </div>
                       </div>
 
-                      <p className="text-xs text-muted-foreground line-clamp-2">
+                      <p className="text-[11px] text-[#A0AEC0] line-clamp-2 leading-relaxed">
                         {report.summary || report.description}
                       </p>
 
-                      <div className="flex items-center justify-between text-[11px] text-muted-foreground mt-1">
+                      <div className="flex items-center justify-between text-[10px] font-bold text-muted-foreground tracking-wide mt-1 pt-2 border-t border-white/5">
                         <span className="truncate max-w-[200px]">{report.address}</span>
-                        <span>{format(new Date(report.created_at), "MMM d, yyyy")}</span>
+                        <span className="uppercase">{format(new Date(report.created_at), "MMM d, yyyy")}</span>
                       </div>
                     </div>
                   ))
@@ -467,65 +444,65 @@ export function AdminDashboardClient({
               </div>
             </div>
 
-            {/* Right detail pane: lg=7 */}
-            <div className={`lg:col-span-7 ${!selectedReportId ? "hidden lg:flex" : "flex"} flex-col`}>
+            {/* Right Detail Pane: lg=7 */}
+            <div className={`lg:col-span-7 ${!selectedReportId ? "hidden lg:flex" : "flex"} flex-col w-full`}>
               <AnimatePresence mode="wait">
                 {!selectedReport ? (
                   <motion.div
                     initial={{ opacity: 0 }}
                     animate={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    className="flex flex-1 flex-col items-center justify-center border rounded-xl bg-card p-12 text-center"
+                    className="flex flex-1 flex-col items-center justify-center border border-white/8 rounded-3xl bg-[#0B0E13]/60 p-12 text-center min-h-[450px]"
                   >
-                    <Building className="h-12 w-12 text-muted-foreground opacity-40 mb-3" />
-                    <h3 className="text-lg font-semibold">No report selected</h3>
-                    <p className="text-sm text-muted-foreground max-w-sm mt-1">
-                      Select a report from the list to assign departments, update statuses, and log internal notes.
+                    <Building className="h-12 w-12 text-accent opacity-30 mb-3 animate-pulse" />
+                    <h3 className="text-base font-black text-white uppercase tracking-wider">No report selected</h3>
+                    <p className="text-xs text-muted-foreground max-w-xs mt-1.5 leading-relaxed">
+                      Select an incident report from the operations log to assign departments, update dispatches, and log internal notes.
                     </p>
                   </motion.div>
                 ) : (
                   <motion.div
                     key={selectedReport.id}
-                    initial={{ opacity: 0, y: 10 }}
+                    initial={{ opacity: 0, y: 15 }}
                     animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -10 }}
-                    className="flex flex-1 flex-col border rounded-xl bg-card overflow-hidden"
+                    exit={{ opacity: 0, y: -15 }}
+                    className="flex flex-1 flex-col border border-white/8 rounded-3xl bg-[#0B0E13]/60 overflow-hidden shadow-2xl"
                   >
                     {/* Mobile Back Header */}
-                    <div className="flex items-center gap-2 border-b p-4 lg:hidden">
+                    <div className="flex items-center gap-2 border-b border-white/5 p-4 lg:hidden">
                       <Button
                         variant="ghost"
                         size="sm"
                         onClick={() => setSelectedReportId(null)}
-                        className="h-8 gap-1 pl-1"
+                        className="h-8 gap-1.5 pl-1.5 rounded-full hover:bg-white/5 text-white text-xs font-bold uppercase tracking-wider"
                       >
-                        <ArrowLeft className="h-4 w-4" />
+                        <ArrowLeft className="h-4 w-4 text-accent" />
                         Back to list
                       </Button>
                     </div>
 
-                    <div className="flex-1 overflow-y-auto max-h-[750px] p-6 space-y-6">
-                      {/* Title & Metadata */}
-                      <div className="space-y-2">
-                        <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex-1 overflow-y-auto max-h-[750px] p-6 space-y-6 no-scrollbar">
+                      {/* Title & Metadata Header */}
+                      <div className="space-y-2.5">
+                        <div className="flex flex-wrap items-center gap-1.5">
                           {getSeverityBadge(selectedReport.severity)}
                           {getStatusBadge(selectedReport.status)}
                           {selectedReport.department_id && (
-                            <Badge variant="outline" className="bg-sky-500/10 text-sky-500 border-sky-500/20">
+                            <Badge variant="outline" className="bg-blue-500/10 text-blue-300 border-blue-500/20 font-bold text-[9px] uppercase tracking-wider">
                               {departments.find((d) => d.id === selectedReport.department_id)?.name || "Assigned"}
                             </Badge>
                           )}
                         </div>
-                        <h2 className="text-xl font-bold tracking-tight">{selectedReport.title}</h2>
-                        <p className="text-xs text-muted-foreground">
-                          Submitted by user on {format(new Date(selectedReport.created_at), "MMMM d, yyyy 'at' h:mm a")}
+                        <h2 className="text-lg md:text-xl font-black tracking-tight text-white leading-snug">{selectedReport.title}</h2>
+                        <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wide">
+                          Submitted by citizen on {format(new Date(selectedReport.created_at), "MMMM d, yyyy 'at' h:mm a")}
                         </p>
                       </div>
 
-                      {/* Image and Description */}
-                      <div className="grid gap-4 md:grid-cols-12">
+                      {/* Photo image and Description split */}
+                      <div className="grid gap-5 md:grid-cols-12">
                         {selectedReport.image_url && (
-                          <div className="relative aspect-video rounded-lg overflow-hidden border md:col-span-5 bg-muted">
+                          <div className="relative aspect-video rounded-2xl overflow-hidden border border-white/8 md:col-span-5 bg-[#050608]">
                             {/* eslint-disable-next-line @next/next/no-img-element */}
                             <img
                               src={selectedReport.image_url}
@@ -534,28 +511,28 @@ export function AdminDashboardClient({
                             />
                           </div>
                         )}
-                        <div className={`space-y-2 ${selectedReport.image_url ? "md:col-span-7" : "md:col-span-12"}`}>
-                          <h4 className="text-xs font-semibold uppercase text-muted-foreground">User Description</h4>
-                          <p className="text-sm text-foreground leading-relaxed">
+                        <div className={`space-y-3 ${selectedReport.image_url ? "md:col-span-7" : "md:col-span-12"}`}>
+                          <h4 className="text-[10px] font-black uppercase text-muted-foreground tracking-wider">User Description</h4>
+                          <p className="text-xs text-[#A0AEC0] leading-relaxed font-medium">
                             {selectedReport.description}
                           </p>
                           {selectedReport.ai_summary && (
-                            <div className="mt-3 p-3 rounded-lg bg-neutral-500/5 border border-neutral-500/10 text-xs">
-                              <span className="font-semibold text-neutral-700 dark:text-neutral-300 block mb-1">AI Summarization:</span>
+                            <div className="mt-3 p-3.5 rounded-2xl bg-white/5 border border-white/5 text-[11px] leading-relaxed">
+                              <span className="font-extrabold text-accent block mb-1 uppercase tracking-wide text-[10px]">AI Classification summary</span>
                               {selectedReport.ai_summary}
                             </div>
                           )}
                         </div>
                       </div>
 
-                      <hr className="border-border" />
+                      <hr className="border-white/5" />
 
-                      {/* ── Operations Area ── */}
-                      <div className="grid gap-4 md:grid-cols-2">
-                        {/* Department assignment */}
+                      {/* ── Operational Control Grid ── */}
+                      <div className="grid gap-5 md:grid-cols-2">
+                        {/* Department selection */}
                         <div className="space-y-2">
-                          <label className="text-xs font-semibold uppercase text-muted-foreground block">
-                            Department Assignment
+                          <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground block">
+                            Department Routing
                           </label>
                           <Select
                             defaultValue={selectedReport.department_id || "unassigned"}
@@ -564,13 +541,13 @@ export function AdminDashboardClient({
                               departmentMutation.mutate({ id: selectedReport.id, depId })
                             }}
                           >
-                            <SelectTrigger className="w-full" placeholder="Unassigned">
+                            <SelectTrigger className="w-full h-10 rounded-xl bg-white/4 border border-white/8 text-white focus:ring-accent" placeholder="Unassigned">
                               {departments.find((d) => d.id === selectedReport.department_id)?.name || "Unassigned"}
                             </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="unassigned">Unassigned</SelectItem>
+                            <SelectContent className="glass-panel border-white/8 text-white rounded-xl">
+                              <SelectItem value="unassigned" className="focus:bg-white/5 focus:text-white rounded-lg">Unassigned</SelectItem>
                               {departments.map((d) => (
-                                <SelectItem key={d.id} value={d.id}>
+                                <SelectItem key={d.id} value={d.id} className="focus:bg-white/5 focus:text-white rounded-lg">
                                   {d.name}
                                 </SelectItem>
                               ))}
@@ -578,16 +555,17 @@ export function AdminDashboardClient({
                           </Select>
                         </div>
 
-                        {/* Status lifecycle actions */}
+                        {/* Lifecycle update actions */}
                         <div className="space-y-2">
-                          <label className="text-xs font-semibold uppercase text-muted-foreground block">
-                            Lifecycle Actions
+                          <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground block">
+                            Lifecycle Dispatches
                           </label>
                           <div className="flex flex-wrap gap-1.5">
                             {selectedReport.status === "pending" && (
                               <Button
                                 variant="secondary"
                                 size="sm"
+                                className="rounded-full bg-white/5 hover:bg-white/10 text-white font-bold text-[10px] uppercase tracking-wider px-4"
                                 disabled={statusMutation.isPending}
                                 onClick={() => statusMutation.mutate({ id: selectedReport.id, status: "assigned" })}
                               >
@@ -598,10 +576,11 @@ export function AdminDashboardClient({
                               <Button
                                 variant="secondary"
                                 size="sm"
+                                className="rounded-full bg-white/5 hover:bg-white/10 text-white font-bold text-[10px] uppercase tracking-wider px-4"
                                 disabled={statusMutation.isPending}
                                 onClick={() => statusMutation.mutate({ id: selectedReport.id, status: "in_progress" })}
                               >
-                                <Play className="mr-1.5 h-3.5 w-3.5" />
+                                <Play className="mr-1 h-3 w-3 text-accent fill-accent" />
                                 Start Work
                               </Button>
                             )}
@@ -609,11 +588,11 @@ export function AdminDashboardClient({
                               <Button
                                 variant="default"
                                 size="sm"
-                                className="bg-emerald-600 hover:bg-emerald-700 text-white"
+                                className="rounded-full bg-accent hover:bg-accent/90 text-accent-foreground font-bold text-[10px] uppercase tracking-wider px-4"
                                 disabled={statusMutation.isPending}
                                 onClick={() => statusMutation.mutate({ id: selectedReport.id, status: "resolved" })}
                               >
-                                <Check className="mr-1.5 h-3.5 w-3.5" />
+                                <Check className="mr-1 h-3.5 w-3.5" />
                                 Resolve Issue
                               </Button>
                             )}
@@ -621,10 +600,11 @@ export function AdminDashboardClient({
                               <Button
                                 variant="destructive"
                                 size="sm"
+                                className="rounded-full bg-red-500/10 hover:bg-red-500 text-red-400 hover:text-white border border-red-500/25 font-bold text-[10px] uppercase tracking-wider px-4"
                                 disabled={statusMutation.isPending}
                                 onClick={() => statusMutation.mutate({ id: selectedReport.id, status: "dismissed" })}
                               >
-                                <XCircle className="mr-1.5 h-3.5 w-3.5" />
+                                <XCircle className="mr-1 h-3.5 w-3.5 shrink-0" />
                                 Dismiss
                               </Button>
                             )}
@@ -632,6 +612,7 @@ export function AdminDashboardClient({
                               <Button
                                 variant="outline"
                                 size="sm"
+                                className="rounded-full bg-white/5 hover:bg-white/10 border-white/10 text-white font-bold text-[10px] uppercase tracking-wider px-4"
                                 disabled={statusMutation.isPending}
                                 onClick={() => statusMutation.mutate({ id: selectedReport.id, status: "in_progress" })}
                               >
@@ -642,38 +623,38 @@ export function AdminDashboardClient({
                         </div>
                       </div>
 
-                      <hr className="border-border" />
+                      <hr className="border-white/5" />
 
-                      {/* Tabs: Notes & Timeline */}
+                      {/* Tabs: Notes & Log history */}
                       <Tabs defaultValue="timeline" className="w-full">
-                        <TabsList className="w-full grid grid-cols-2">
-                          <TabsTrigger value="timeline" className="flex items-center gap-1.5 justify-center">
-                            <History className="h-4 w-4" />
-                            Timeline
+                        <TabsList className="w-full grid grid-cols-2 bg-white/4 border border-white/8 rounded-full p-0.5">
+                          <TabsTrigger value="timeline" className="flex items-center gap-1.5 justify-center rounded-full text-[10px] font-black uppercase tracking-wider py-1.5 data-[state=active]:bg-white/5 data-[state=active]:text-white">
+                            <History className="h-3.5 w-3.5 text-accent" />
+                            Timeline Log
                           </TabsTrigger>
-                          <TabsTrigger value="notes" className="flex items-center gap-1.5 justify-center">
-                            <MessageSquare className="h-4 w-4" />
-                            Admin Notes
+                          <TabsTrigger value="notes" className="flex items-center gap-1.5 justify-center rounded-full text-[10px] font-black uppercase tracking-wider py-1.5 data-[state=active]:bg-white/5 data-[state=active]:text-white">
+                            <MessageSquare className="h-3.5 w-3.5 text-accent" />
+                            Internal Notes
                           </TabsTrigger>
                         </TabsList>
 
-                        {/* Timeline Tab content */}
-                        <TabsContent value="timeline" className="pt-2">
+                        {/* Timeline logs */}
+                        <TabsContent value="timeline" className="pt-4">
                           {isLoadingEvents ? (
-                            <div className="py-8 text-center text-xs text-muted-foreground">Loading timeline...</div>
+                            <div className="py-8 text-center text-[11px] font-bold text-muted-foreground uppercase">Loading dispatch log...</div>
                           ) : events.length === 0 ? (
-                            <div className="py-8 text-center text-xs text-muted-foreground">No events recorded.</div>
+                            <div className="py-8 text-center text-[11px] font-bold text-muted-foreground uppercase">No events logged</div>
                           ) : (
-                            <div className="relative border-l pl-4 ml-2 space-y-4 py-2">
+                            <div className="relative border-l border-white/10 pl-4 ml-2.5 space-y-4 py-2">
                               {events.map((event) => (
                                 <div key={event.id} className="relative">
-                                  <span className="absolute -left-[21px] top-1.5 flex h-2 w-2 rounded-full bg-primary" />
+                                  <span className="absolute -left-[21px] top-1.5 flex h-2 w-2 rounded-full bg-accent glow-accent" />
                                   <div className="flex flex-col gap-0.5">
-                                    <div className="flex items-center justify-between text-[11px] text-muted-foreground">
-                                      <span>{format(new Date(event.created_at), "MMM d, yyyy h:mm a")}</span>
-                                      <span className="font-medium text-foreground">{event.user_name}</span>
+                                    <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-wider text-muted-foreground">
+                                      <span>{format(new Date(event.created_at), "MMM d, h:mm a")}</span>
+                                      <span className="text-white font-black">{event.user_name}</span>
                                     </div>
-                                    <p className="text-xs font-semibold text-foreground mt-0.5">{event.description}</p>
+                                    <p className="text-[11px] font-bold text-white mt-1 leading-normal">{event.description}</p>
                                   </div>
                                 </div>
                               ))}
@@ -681,21 +662,21 @@ export function AdminDashboardClient({
                           )}
                         </TabsContent>
 
-                        {/* Admin Notes Tab content */}
-                        <TabsContent value="notes" className="space-y-4 pt-2">
+                        {/* Admin Notes */}
+                        <TabsContent value="notes" className="space-y-4 pt-4">
                           <div className="space-y-2">
                             <Textarea
-                              placeholder="Type internal operational note..."
+                              placeholder="Log internal operations note here..."
                               value={noteText}
                               onChange={(e) => setNoteText(e.target.value)}
-                              className="min-h-16 text-xs"
+                              className="min-h-16 text-xs rounded-xl border border-white/8 bg-white/4 focus:ring-accent"
                             />
                             <div className="flex justify-end">
                               <Button
                                 size="sm"
                                 disabled={noteMutation.isPending}
                                 onClick={() => noteMutation.mutate({ id: selectedReport.id, note: noteText })}
-                                className="gap-1.5 text-xs h-8"
+                                className="rounded-full bg-accent hover:bg-accent/90 text-accent-foreground font-bold text-[10px] uppercase tracking-wider px-4 h-8 gap-1.5"
                               >
                                 <Send className="h-3 w-3" />
                                 Save Note
@@ -704,18 +685,18 @@ export function AdminDashboardClient({
                           </div>
 
                           {isLoadingNotes ? (
-                            <div className="py-8 text-center text-xs text-muted-foreground">Loading notes...</div>
+                            <div className="py-8 text-center text-[11px] font-bold text-muted-foreground uppercase">Loading internal notes...</div>
                           ) : notes.length === 0 ? (
-                            <div className="py-8 text-center text-xs text-muted-foreground">No internal notes written yet.</div>
+                            <div className="py-8 text-center text-[11px] font-bold text-muted-foreground uppercase">No internal dispatches recorded</div>
                           ) : (
-                            <div className="space-y-3 max-h-52 overflow-y-auto pr-1">
+                            <div className="space-y-3 max-h-52 overflow-y-auto pr-1 no-scrollbar">
                               {notes.map((note) => (
-                                <div key={note.id} className="p-3 rounded-lg border bg-neutral-500/5 text-xs space-y-1">
-                                  <div className="flex justify-between text-[10px] text-muted-foreground">
-                                    <span className="font-semibold text-foreground">{note.author_name}</span>
-                                    <span>{format(new Date(note.created_at), "MMM d, yyyy h:mm a")}</span>
+                                <div key={note.id} className="p-3.5 rounded-2xl border border-white/5 bg-white/2 text-xs space-y-1.5">
+                                  <div className="flex justify-between text-[9px] font-black uppercase tracking-wider text-muted-foreground">
+                                    <span className="text-white font-black">{note.author_name}</span>
+                                    <span>{format(new Date(note.created_at), "MMM d, h:mm a")}</span>
                                   </div>
-                                  <p className="text-foreground leading-relaxed text-xs">{note.note}</p>
+                                  <p className="text-[#A0AEC0] leading-relaxed text-xs font-medium">{note.note}</p>
                                 </div>
                               ))}
                             </div>
@@ -731,139 +712,146 @@ export function AdminDashboardClient({
         </TabsContent>
 
         <TabsContent value="announcements" className="mt-6">
-          <div className="grid gap-6 md:grid-cols-12">
-            {/* Left Pane: Composer Form */}
+          <div className="grid gap-6 md:grid-cols-12 items-start">
+            {/* Announcement composer */}
             <div className="md:col-span-5 space-y-4">
-              <Card>
-                <CardHeader className="pb-4">
-                  <h3 className="font-semibold text-sm">Broadcast New Alert</h3>
-                  <p className="text-xs text-muted-foreground">
-                    Send emergency broadcasts or information alerts to all active citizens.
+              <div className="glass-card rounded-3xl border border-white/8 bg-[#0B0E13]/60 p-6 space-y-5 shadow-2xl">
+                <div className="space-y-1">
+                  <h3 className="text-sm font-black uppercase tracking-wider text-white">Broadcast Alert</h3>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                    Broadcast emergency notifications to all citizens
                   </p>
-                </CardHeader>
-                <CardContent className="space-y-4">
+                </div>
+                
+                <div className="space-y-4">
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold uppercase text-muted-foreground">Title</label>
+                    <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Title</label>
                     <Input
-                      placeholder="e.g. Water Outage Alert"
+                      placeholder="e.g. Critical Water Main Burst"
                       value={annTitle}
                       onChange={(e) => setAnnTitle(e.target.value)}
                     />
                   </div>
+                  
                   <div className="space-y-1.5">
-                    <label className="text-xs font-semibold uppercase text-muted-foreground">Content Message</label>
+                    <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Alert Message</label>
                     <Textarea
-                      placeholder="Detail the announcement..."
+                      placeholder="Write the announcement description..."
                       value={annContent}
                       onChange={(e) => setAnnContent(e.target.value)}
-                      className="min-h-[100px]"
+                      className="min-h-[100px] rounded-xl border border-white/8 bg-white/4 focus:ring-accent text-xs"
                     />
                   </div>
+                  
                   <div className="grid grid-cols-2 gap-4">
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold uppercase text-muted-foreground">Severity</label>
+                      <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Severity</label>
                       <Select
                         value={annSeverity}
                         onValueChange={(val) => setAnnSeverity(val as any)}
                       >
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className="w-full h-10 rounded-xl bg-white/4 border border-white/8 text-white focus:ring-accent">
                           {annSeverity}
                         </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Info">Info</SelectItem>
-                          <SelectItem value="Warning">Warning</SelectItem>
-                          <SelectItem value="Emergency">Emergency</SelectItem>
+                        <SelectContent className="glass-panel border-white/8 text-white rounded-xl">
+                          <SelectItem value="Info" className="focus:bg-white/5 focus:text-white rounded-lg">Info</SelectItem>
+                          <SelectItem value="Warning" className="focus:bg-white/5 focus:text-white rounded-lg">Warning</SelectItem>
+                          <SelectItem value="Emergency" className="focus:bg-white/5 focus:text-white rounded-lg">Emergency</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
+                    
                     <div className="space-y-1.5">
-                      <label className="text-xs font-semibold uppercase text-muted-foreground">Expires In (Hours)</label>
+                      <label className="text-[10px] font-black uppercase tracking-wider text-muted-foreground">Expiration (Hours)</label>
                       <Input
                         type="number"
-                        placeholder="Hours (optional)"
+                        placeholder="Hours"
                         value={annExpiresHrs}
                         onChange={(e) => setAnnExpiresHrs(e.target.value)}
                         min={1}
                       />
                     </div>
                   </div>
+                  
                   <Button
                     onClick={handleCreateAnnouncement}
                     disabled={broadcastMutation.isPending}
-                    className="w-full gap-2 mt-2"
+                    className="w-full gap-2 mt-2 rounded-xl bg-accent hover:bg-accent/90 text-accent-foreground font-bold uppercase tracking-wider text-xs h-10 shrink-0 shadow-lg shadow-accent/20"
                   >
                     <Send className="h-4 w-4" />
                     {broadcastMutation.isPending ? "Broadcasting..." : "Broadcast Alert"}
                   </Button>
-                </CardContent>
-              </Card>
+                </div>
+              </div>
             </div>
 
-            {/* Right Pane: History / List */}
+            {/* Broadcast log logs */}
             <div className="md:col-span-7 space-y-4">
-              <Card>
-                <CardHeader className="pb-4">
-                  <h3 className="font-semibold text-sm">Active & Broadcast History</h3>
-                  <p className="text-xs text-muted-foreground">
-                    Currently visible and past notifications sent to the system.
+              <div className="glass-card rounded-3xl border border-white/8 bg-[#0B0E13]/60 p-6 space-y-4 shadow-2xl">
+                <div className="space-y-1">
+                  <h3 className="text-sm font-black uppercase tracking-wider text-white">Broadcast Archive</h3>
+                  <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">
+                    Currently visible and past notifications
                   </p>
-                </CardHeader>
-                <CardContent className="p-0">
-                  <div className="divide-y max-h-[500px] overflow-y-auto">
-                    {adminAnnouncements.length === 0 ? (
-                      <div className="py-12 text-center text-sm text-muted-foreground">
-                        No announcements broadcasted yet.
-                      </div>
-                    ) : (
-                      adminAnnouncements.map((a) => {
-                        const isExpired = a.expires_at && new Date(a.expires_at) < new Date()
-                        return (
-                          <div key={a.id} className="p-4 flex items-start justify-between gap-4">
-                            <div className="space-y-1">
-                              <div className="flex items-center gap-2">
-                                <span className="font-semibold text-sm">{a.title}</span>
-                                <Badge
-                                  variant={
-                                    a.severity === "Emergency"
-                                      ? "destructive"
-                                      : a.severity === "Warning"
-                                      ? "warning"
-                                      : "outline"
-                                  }
-                                  className="text-[10px] px-1.5 py-0"
-                                >
-                                  {a.severity}
+                </div>
+
+                <div className="divide-y divide-white/5 max-h-[500px] overflow-y-auto pr-1 no-scrollbar">
+                  {adminAnnouncements.length === 0 ? (
+                    <div className="py-12 text-center text-xs font-bold text-muted-foreground uppercase">
+                      No announcements broadcasted yet.
+                    </div>
+                  ) : (
+                    adminAnnouncements.map((a) => {
+                      const isExpired = a.expires_at && new Date(a.expires_at) < new Date()
+                      return (
+                        <div key={a.id} className="py-4.5 flex items-start justify-between gap-4 first:pt-0 last:pb-0">
+                          <div className="space-y-1.5 min-w-0">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className="font-bold text-xs sm:text-sm text-white leading-tight">{a.title}</span>
+                              <Badge
+                                variant={
+                                  a.severity === "Emergency"
+                                    ? "destructive"
+                                    : a.severity === "Warning"
+                                    ? "warning"
+                                    : "outline"
+                                }
+                                className="text-[9px] font-black uppercase tracking-wider px-2 h-4.5"
+                              >
+                                {a.severity}
+                              </Badge>
+                              {isExpired && (
+                                <Badge variant="secondary" className="text-[9px] font-black uppercase tracking-wider px-2 h-4.5 bg-white/5 text-muted-foreground">
+                                  Expired
                                 </Badge>
-                                {isExpired && (
-                                  <Badge variant="secondary" className="text-[10px] px-1.5 py-0">
-                                    Expired
-                                  </Badge>
-                                )}
-                              </div>
-                              <p className="text-xs text-muted-foreground leading-relaxed">{a.content}</p>
-                              <div className="text-[10px] text-muted-foreground flex gap-3 pt-1">
-                                <span>Sent: {format(new Date(a.created_at), "MMM d, h:mm a")}</span>
-                                {a.expires_at && (
-                                  <span>Expires: {format(new Date(a.expires_at), "MMM d, h:mm a")}</span>
-                                )}
-                              </div>
+                              )}
                             </div>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              className="text-muted-foreground hover:text-red-400 shrink-0"
-                              onClick={() => deleteAnnouncementMutation.mutate(a.id)}
-                              disabled={deleteAnnouncementMutation.isPending}
-                            >
-                              <XCircle className="h-4 w-4" />
-                            </Button>
+                            
+                            <p className="text-xs text-muted-foreground leading-relaxed font-medium">{a.content}</p>
+                            
+                            <div className="text-[9px] font-bold text-muted-foreground uppercase tracking-wider flex gap-3.5 pt-1.5">
+                              <span>Sent: {format(new Date(a.created_at), "MMM d, h:mm a")}</span>
+                              {a.expires_at && (
+                                <span>Expires: {format(new Date(a.expires_at), "MMM d, h:mm a")}</span>
+                              )}
+                            </div>
                           </div>
-                        )
-                      })
-                    )}
-                  </div>
-                </CardContent>
-              </Card>
+                          
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            className="rounded-full text-muted-foreground hover:text-red-400 shrink-0 hover:bg-red-500/10 h-8 w-8"
+                            onClick={() => deleteAnnouncementMutation.mutate(a.id)}
+                            disabled={deleteAnnouncementMutation.isPending}
+                          >
+                            <XCircle className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      )
+                    })
+                  )}
+                </div>
+              </div>
             </div>
           </div>
         </TabsContent>

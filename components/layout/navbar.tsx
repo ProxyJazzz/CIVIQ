@@ -102,26 +102,26 @@ export function Navbar() {
       : "text-muted-foreground hover:text-foreground"
 
   return (
-    <header className="border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/75 sticky top-0 z-40">
-      <div className="container flex h-16 items-center justify-between">
-        <div className="flex items-center gap-2">
-          <Link href="/" className="text-lg font-bold tracking-tight bg-gradient-to-r from-neutral-900 to-neutral-600 bg-clip-text text-transparent dark:from-white dark:to-neutral-400">
-            CIVIQ
+    <header className="sticky top-4 z-50 w-full max-w-6xl mx-auto px-4 my-2">
+      <div className="glass-panel rounded-full px-5 md:px-6 h-14 flex items-center justify-between shadow-2xl shadow-black/40">
+        <div className="flex items-center gap-3">
+          <Link href="/" className="text-lg font-black tracking-tighter text-white hover:opacity-90 transition-opacity">
+            CIVIQ<span className="text-accent">.</span>
           </Link>
-          <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 text-[10px] font-semibold">
+          <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-accent/10 text-accent border border-accent/20 text-[10px] font-bold">
             <span className="relative flex h-1.5 w-1.5 shrink-0">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
-              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-emerald-500" />
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-accent/40 opacity-75" />
+              <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-accent" />
             </span>
-            <span>{onlineCount}</span>
+            <span>{onlineCount} active</span>
           </div>
         </div>
 
         {/* ── Desktop Navigation ── */}
-        <div className="hidden md:flex items-center gap-1.5">
+        <div className="hidden md:flex items-center gap-1">
           <Link
             href="/feed"
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${linkActiveClasses(
+            className={`flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-semibold tracking-wide transition-all duration-200 ${linkActiveClasses(
               "/feed"
             )}`}
           >
@@ -130,7 +130,7 @@ export function Navbar() {
           </Link>
           <Link
             href="/map"
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${linkActiveClasses(
+            className={`flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-semibold tracking-wide transition-all duration-200 ${linkActiveClasses(
               "/map"
             )}`}
           >
@@ -139,7 +139,7 @@ export function Navbar() {
           </Link>
           <Link
             href="/trending"
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${linkActiveClasses(
+            className={`flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-semibold tracking-wide transition-all duration-200 ${linkActiveClasses(
               "/trending"
             )}`}
           >
@@ -148,7 +148,7 @@ export function Navbar() {
           </Link>
           <Link
             href="/leaderboard"
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${linkActiveClasses(
+            className={`flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-semibold tracking-wide transition-all duration-200 ${linkActiveClasses(
               "/leaderboard"
             )}`}
           >
@@ -157,7 +157,7 @@ export function Navbar() {
           </Link>
           <Link
             href="/analytics"
-            className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${linkActiveClasses(
+            className={`flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-semibold tracking-wide transition-all duration-200 ${linkActiveClasses(
               "/analytics"
             )}`}
           >
@@ -167,7 +167,7 @@ export function Navbar() {
           {profile?.role === "admin" && (
             <Link
               href="/admin"
-              className={`flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${linkActiveClasses(
+              className={`flex items-center gap-1.5 rounded-full px-3.5 py-1 text-xs font-semibold tracking-wide transition-all duration-200 ${linkActiveClasses(
                 "/admin"
               )}`}
             >
@@ -180,95 +180,102 @@ export function Navbar() {
         {/* ── Actions Menu & Notifications ── */}
         <nav aria-label="Primary navigation" className="flex items-center gap-3">
           {loading ? (
-            <div className="h-9 w-20 rounded-md bg-muted" />
+            <div className="h-8 w-16 rounded-full bg-muted animate-pulse" />
           ) : user ? (
             <>
-              {/* Notifications bell icon */}
+              {/* Notifications bell */}
               <Link
                 href="/notifications"
-                className={`relative flex h-9 w-9 items-center justify-center rounded-lg border transition-colors hover:bg-muted ${
-                  pathname === "/notifications" ? "bg-muted" : "bg-transparent"
+                className={`relative flex h-9 w-9 items-center justify-center rounded-full border transition-all duration-200 hover:bg-white/5 ${
+                  pathname === "/notifications"
+                    ? "bg-white/10 text-white border-white/20"
+                    : "bg-transparent text-muted-foreground border-transparent"
                 }`}
               >
                 <Bell className="h-4 w-4" />
                 {unreadCount > 0 && (
-                  <span className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center rounded-full bg-blue-500 text-[9px] font-bold text-white shadow-sm animate-pulse">
-                    {unreadCount}
-                  </span>
+                  <span className="absolute top-1 right-1 flex h-2 w-2 rounded-full bg-accent glow-accent" />
                 )}
               </Link>
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="h-10 gap-2 px-2">
-                    <Avatar className="h-8 w-8">
-                      <AvatarImage src={avatarUrl} alt={fullName || user.email || "CIVIQ user"} />
-                      <AvatarFallback>{getInitials(fullName, user.email)}</AvatarFallback>
-                    </Avatar>
-                    <span className="hidden max-w-32 truncate text-sm md:inline">
-                      {fullName || user.email}
+                  <Button variant="ghost" className="h-9 gap-2 px-1.5 rounded-full hover:bg-white/5 text-white">
+                    <div className="relative">
+                      <Avatar className="h-7 w-7 border border-white/10">
+                        <AvatarImage src={avatarUrl} alt={fullName || user.email || "CIVIQ user"} />
+                        <AvatarFallback className="bg-muted text-foreground text-[10px]">
+                          {getInitials(fullName, user.email)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <span className="absolute -bottom-0.5 -right-0.5 h-2 w-2 rounded-full bg-accent border border-background" />
+                    </div>
+                    <span className="hidden max-w-28 truncate text-xs font-semibold md:inline tracking-wide">
+                      {fullName || user.email?.split("@")[0]}
                     </span>
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
-                  <DropdownMenuLabel>{user.email}</DropdownMenuLabel>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/profile">
-                      <PersonIcon className="mr-2 h-4 w-4" />
+                <DropdownMenuContent align="end" className="w-56 glass-panel border border-white/8 text-white mt-1 shadow-2xl rounded-2xl p-1.5">
+                  <DropdownMenuLabel className="px-2.5 py-2 text-xs font-bold text-muted-foreground truncate">
+                    {user.email}
+                  </DropdownMenuLabel>
+                  <DropdownMenuSeparator className="bg-white/8 my-1" />
+                  <DropdownMenuItem asChild className="rounded-xl focus:bg-white/5 focus:text-white cursor-pointer px-2.5 py-2">
+                    <Link href="/profile" className="flex items-center text-xs font-medium w-full">
+                      <PersonIcon className="mr-2 h-4 w-4 text-muted-foreground" />
                       Profile
                     </Link>
                   </DropdownMenuItem>
                   {/* Mobile Admin Link */}
                   {profile?.role === "admin" && (
-                    <DropdownMenuItem asChild className="md:hidden">
-                      <Link href="/admin">
-                        <Shield className="mr-2 h-4 w-4" />
+                    <DropdownMenuItem asChild className="rounded-xl focus:bg-white/5 focus:text-white cursor-pointer px-2.5 py-2 md:hidden">
+                      <Link href="/admin" className="flex items-center text-xs font-medium w-full">
+                        <Shield className="mr-2 h-4 w-4 text-muted-foreground" />
                         Admin Dashboard
                       </Link>
                     </DropdownMenuItem>
                   )}
                   {/* Mobile Links */}
-                  <DropdownMenuItem asChild className="md:hidden">
-                    <Link href="/feed">
-                      <Radio className="mr-2 h-4 w-4" />
+                  <DropdownMenuItem asChild className="rounded-xl focus:bg-white/5 focus:text-white cursor-pointer px-2.5 py-2 md:hidden">
+                    <Link href="/feed" className="flex items-center text-xs font-medium w-full">
+                      <Radio className="mr-2 h-4 w-4 text-muted-foreground" />
                       Feed
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild className="md:hidden">
-                    <Link href="/map">
-                      <Map className="mr-2 h-4 w-4" />
+                  <DropdownMenuItem asChild className="rounded-xl focus:bg-white/5 focus:text-white cursor-pointer px-2.5 py-2 md:hidden">
+                    <Link href="/map" className="flex items-center text-xs font-medium w-full">
+                      <Map className="mr-2 h-4 w-4 text-muted-foreground" />
                       Map
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild className="md:hidden">
-                    <Link href="/trending">
-                      <Activity className="mr-2 h-4 w-4" />
+                  <DropdownMenuItem asChild className="rounded-xl focus:bg-white/5 focus:text-white cursor-pointer px-2.5 py-2 md:hidden">
+                    <Link href="/trending" className="flex items-center text-xs font-medium w-full">
+                      <Activity className="mr-2 h-4 w-4 text-muted-foreground" />
                       Trending
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild className="md:hidden">
-                    <Link href="/leaderboard">
-                      <Trophy className="mr-2 h-4 w-4" />
+                  <DropdownMenuItem asChild className="rounded-xl focus:bg-white/5 focus:text-white cursor-pointer px-2.5 py-2 md:hidden">
+                    <Link href="/leaderboard" className="flex items-center text-xs font-medium w-full">
+                      <Trophy className="mr-2 h-4 w-4 text-muted-foreground" />
                       Leaderboard
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuItem asChild className="md:hidden">
-                    <Link href="/analytics">
-                      <BarChart2 className="mr-2 h-4 w-4" />
+                  <DropdownMenuItem asChild className="rounded-xl focus:bg-white/5 focus:text-white cursor-pointer px-2.5 py-2 md:hidden">
+                    <Link href="/analytics" className="flex items-center text-xs font-medium w-full">
+                      <BarChart2 className="mr-2 h-4 w-4 text-muted-foreground" />
                       Analytics
                     </Link>
                   </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={handleSignOut}>
-                    <ExitIcon className="mr-2 h-4 w-4" />
-                    Logout
+                  <DropdownMenuSeparator className="bg-white/8 my-1" />
+                  <DropdownMenuItem onClick={handleSignOut} className="rounded-xl focus:bg-destructive/10 focus:text-destructive cursor-pointer px-2.5 py-2">
+                    <ExitIcon className="mr-2 h-4 w-4 text-destructive/80" />
+                    <span className="text-xs font-medium">Logout</span>
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </>
           ) : (
-            <Button asChild size="sm">
+            <Button asChild size="sm" className="rounded-full bg-accent hover:bg-accent/90 text-accent-foreground font-semibold px-4 py-1 text-xs">
               <Link href="/auth">Sign In</Link>
             </Button>
           )}

@@ -56,14 +56,14 @@ function Chip({
       type="button"
       onClick={onClick}
       className={cn(
-        'relative rounded-full px-3 py-1 text-xs font-medium transition-all duration-200',
-        active ? 'text-white' : 'text-muted-foreground hover:text-foreground'
+        'relative rounded-full px-3.5 py-1 text-xs font-semibold tracking-wide transition-all duration-200',
+        active ? 'text-accent-foreground font-bold' : 'text-muted-foreground hover:text-foreground'
       )}
     >
       {active && (
         <motion.span
           layoutId="filter-chip-bg"
-          className="absolute inset-0 rounded-full bg-blue-600"
+          className="absolute inset-0 rounded-full bg-accent"
           transition={{ type: 'spring', stiffness: 350, damping: 30 }}
         />
       )}
@@ -74,23 +74,23 @@ function Chip({
 
 export function FilterBar({ filters, onChange }: FilterBarProps) {
   return (
-    <div className="space-y-4 rounded-2xl border border-white/8 bg-white/4 p-4 backdrop-blur">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+    <div className="space-y-4 rounded-3xl border border-white/8 bg-white/4 p-5 backdrop-blur shadow-xl shadow-black/10">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-muted-foreground">
           <SlidersHorizontal className="h-3.5 w-3.5" />
           Filter & Sort Feed
         </div>
 
         {/* Sort Pill Selector */}
-        <div className="flex items-center gap-0.5 bg-white/5 rounded-full p-0.5 border border-white/5">
+        <div className="flex items-center gap-0.5 bg-white/5 rounded-full p-0.5 border border-white/5 self-start">
           {SORTS.map((s) => (
             <button
               key={s.value}
               type="button"
               onClick={() => onChange({ ...filters, sortBy: s.value })}
               className={cn(
-                'rounded-full px-3 py-1 text-[10px] font-semibold tracking-wide uppercase transition-all duration-200',
-                filters.sortBy === s.value ? 'bg-blue-600 text-white shadow' : 'text-muted-foreground hover:text-foreground'
+                'rounded-full px-3.5 py-1 text-[9px] font-bold tracking-wider uppercase transition-all duration-200',
+                filters.sortBy === s.value ? 'bg-accent text-accent-foreground shadow' : 'text-muted-foreground hover:text-foreground'
               )}
             >
               {s.label}
@@ -100,7 +100,7 @@ export function FilterBar({ filters, onChange }: FilterBarProps) {
       </div>
 
       {/* Category chips */}
-      <div className="flex flex-wrap gap-1 border-t border-white/5 pt-2">
+      <div className="flex flex-wrap gap-1.5 border-t border-white/5 pt-3.5">
         {CATEGORIES.map((c) => (
           <Chip
             key={c.value}
@@ -112,9 +112,9 @@ export function FilterBar({ filters, onChange }: FilterBarProps) {
         ))}
       </div>
 
-      <div className="flex flex-wrap items-center gap-4 pt-1">
+      <div className="flex flex-wrap items-center gap-4 pt-1.5">
         {/* Severity */}
-        <div className="flex items-center gap-1">
+        <div className="flex flex-wrap items-center gap-1.5">
           {SEVERITIES.map((s) => (
             <Chip
               key={s.value}
@@ -130,7 +130,7 @@ export function FilterBar({ filters, onChange }: FilterBarProps) {
         <div className="hidden sm:block h-4 w-px bg-white/10" />
 
         {/* Status */}
-        <div className="flex items-center gap-1">
+        <div className="flex flex-wrap items-center gap-1.5">
           {STATUSES.map((s) => (
             <Chip
               key={s.value}

@@ -72,7 +72,7 @@ export function useRealtimeComments(reportId: string) {
     return () => {
       void supabase.removeChannel(channel)
     }
-  }, [reportId, queryClient, supabase])
+  }, [reportId, queryClient])
 
   return commentsResult
 }

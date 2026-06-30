@@ -2,7 +2,7 @@ import { createClient } from '@/lib/supabase/client'
 import type { ReportWithStats } from '@/types/community'
 
 export async function getReport(id: string, userId?: string): Promise<ReportWithStats> {
-  const supabase = await createClient()
+  const supabase = createClient()
 
   const { data, error } = await supabase
     .from('reports_with_stats')

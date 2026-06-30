@@ -95,5 +95,5 @@ export function useRealtimeVerifications(reportId: string, currentUserId: string
     return () => {
       void supabase.removeChannel(channel)
     }
-  }, [reportId, currentUserId, queryClient, supabase])
+  }, [reportId, currentUserId, queryClient])
 }

@@ -95,5 +95,5 @@ export function useRealtimeVotes(reportId: string, currentUserId: string | null)
     return () => {
       void supabase.removeChannel(channel)
     }
-  }, [reportId, currentUserId, queryClient, supabase])
+  }, [reportId, currentUserId, queryClient])
 }

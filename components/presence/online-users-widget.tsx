@@ -20,18 +20,18 @@ export function OnlineUsersWidget({ onlineUsers, currentUserId }: OnlineUsersWid
   })
 
   return (
-    <div className="rounded-2xl border border-white/8 bg-white/4 p-5 space-y-4">
+    <div className="rounded-3xl border border-white/8 bg-[#0B0E13]/60 p-5 space-y-4 shadow-xl shadow-black/20">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Users className="h-4 w-4 text-muted-foreground" />
-          <h2 className="text-sm font-semibold">Active Citizens</h2>
+          <Users className="h-4 w-4 text-accent" />
+          <h2 className="text-sm font-black tracking-tight text-white">Active Citizens</h2>
         </div>
-        <span className="flex h-5 items-center rounded-full bg-emerald-500/10 px-2 text-[10px] font-semibold text-emerald-400 border border-emerald-500/20">
+        <span className="flex h-5 items-center rounded-full bg-accent/10 px-2.5 text-[9px] font-bold uppercase tracking-wide text-accent border border-accent/20">
           {onlineUsers.length} Online
         </span>
       </div>
 
-      <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+      <div className="space-y-2 max-h-[320px] overflow-y-auto pr-1 no-scrollbar">
         {sortedUsers.length === 0 ? (
           <p className="text-xs text-muted-foreground text-center py-4">No active citizens.</p>
         ) : (
@@ -46,7 +46,7 @@ export function OnlineUsersWidget({ onlineUsers, currentUserId }: OnlineUsersWid
                 initial={{ opacity: 0, x: -10 }}
                 animate={{ opacity: 1, x: 0 }}
                 exit={{ opacity: 0, x: 10 }}
-                className="flex items-center gap-3 rounded-lg p-1.5 hover:bg-white/5 transition-colors"
+                className="flex items-center gap-3 rounded-2xl p-2 hover:bg-white/5 transition-all duration-200"
               >
                 <div className="relative shrink-0">
                   {user.avatar_url ? (
@@ -57,31 +57,31 @@ export function OnlineUsersWidget({ onlineUsers, currentUserId }: OnlineUsersWid
                       className="h-8 w-8 rounded-full object-cover border border-white/10"
                     />
                   ) : (
-                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/10 text-xs font-semibold text-foreground border border-white/10 uppercase">
+                    <div className="flex h-8 w-8 items-center justify-center rounded-full bg-white/5 text-xs font-bold text-white border border-white/10 uppercase">
                       {(user.full_name || 'C')[0]}
                     </div>
                   )}
 
                   <span
-                    className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-background ${
-                      isOnline ? 'bg-emerald-500' : 'bg-amber-500'
+                    className={`absolute bottom-0 right-0 h-2.5 w-2.5 rounded-full border-2 border-[#0B0E13] ${
+                      isOnline ? 'bg-accent glow-accent' : 'bg-amber-500'
                     }`}
                     title={isOnline ? 'Online' : 'Away'}
                   />
                 </div>
 
                 <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1">
-                    <p className="text-xs font-medium truncate text-foreground">
+                  <div className="flex items-center gap-1.5">
+                    <p className="text-xs font-bold truncate text-white leading-tight">
                       {user.full_name || 'Anonymous Citizen'}
                     </p>
                     {isMe && (
-                      <span className="text-[9px] font-semibold text-blue-400 bg-blue-500/10 px-1 rounded">
+                      <span className="text-[8px] font-black text-blue-400 bg-blue-500/10 border border-blue-500/25 px-1.5 py-0.5 rounded-full uppercase tracking-wider">
                         You
                       </span>
                     )}
                   </div>
-                  <p className="text-[10px] text-muted-foreground capitalize">
+                  <p className="text-[10px] text-muted-foreground capitalize mt-0.5">
                     {user.status === 'online' ? 'Active now' : 'Away'}
                   </p>
                 </div>

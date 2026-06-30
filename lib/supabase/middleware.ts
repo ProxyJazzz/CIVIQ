@@ -36,8 +36,10 @@ export async function updateSession(request: NextRequest) {
   const isProtectedRoute = protectedRoutes.some((route) => pathname.startsWith(route))
   const isAuthRoute = authRoutes.some((route) => pathname === route || pathname.startsWith(`${route}/`))
 
-  const { data: claimsData } = await supabase.auth.getClaims()
-  const hasSession = Boolean(claimsData?.claims)
+  const {
+    data: { user },
+  } = await supabase.auth.getUser()
+  const hasSession = Boolean(user)
 
   if (isProtectedRoute && !hasSession) {
     const redirectUrl = request.nextUrl.clone()

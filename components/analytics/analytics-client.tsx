@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from "react"
 import {
   ResponsiveContainer,
   PieChart,
@@ -16,7 +17,6 @@ import {
 } from "recharts"
 import { BarChart3, Activity, Clock, ShieldAlert, FileText } from "lucide-react"
 
-import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import type { AnalyticsSummary } from "@/lib/analytics/get-analytics"
 
 interface AnalyticsClientProps {
@@ -24,32 +24,58 @@ interface AnalyticsClientProps {
 }
 
 const CATEGORY_COLORS: Record<string, string> = {
-  Pothole: "#ef4444", // red
-  Garbage: "#10b981", // green
-  "Water Leakage": "#3b82f6", // blue
-  Streetlight: "#f59e0b", // amber
-  "Road Damage": "#8b5cf6", // purple
-  Drainage: "#ec4899", // pink
-  Other: "#6b7280", // gray
+  Pothole: "#EF4444", // red
+  Garbage: "#00C896", // accent green
+  "Water Leakage": "#3B82F6", // blue
+  Streetlight: "#F59E0B", // orange
+  "Road Damage": "#8B5CF6", // purple
+  Drainage: "#EC4899", // pink
+  Other: "#64748B", // gray
 }
 
 const SEVERITY_COLORS: Record<string, string> = {
-  Low: "#3b82f6", // blue
-  Medium: "#f59e0b", // amber
-  High: "#ef4444", // red
+  Low: "#00C896", // accent green
+  Medium: "#F59E0B", // orange
+  High: "#EF4444", // red
 }
 
 export function AnalyticsClient({ data }: AnalyticsClientProps) {
   const { categoryData, severityData, trendData, departmentData, totals } = data
+  const [mounted, setMounted] = useState(false)
+
+  useEffect(() => {
+    setMounted(true)
+  }, [])
 
   const hasData = totals.total > 0
 
-  if (!hasData) {
+  if (!mounted || !hasData) {
+    if (!mounted && hasData) {
+      return (
+        <div className="space-y-6 max-w-6xl mx-auto px-4 py-6 animate-pulse">
+          {/* Operational Totals Skeleton */}
+          <div className="grid gap-4 grid-cols-2 md:grid-cols-6">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="h-20 rounded-2xl bg-white/5 border border-white/5" />
+            ))}
+          </div>
+          
+          {/* Charts Skeleton */}
+          <div className="grid gap-6 md:grid-cols-12">
+            <div className="md:col-span-12 h-[320px] rounded-3xl bg-white/5 border border-white/5" />
+            <div className="md:col-span-6 h-[250px] rounded-3xl bg-white/5 border border-white/5" />
+            <div className="md:col-span-6 h-[250px] rounded-3xl bg-white/5 border border-white/5" />
+            <div className="md:col-span-12 h-[320px] rounded-3xl bg-white/5 border border-white/5" />
+          </div>
+        </div>
+      )
+    }
+
     return (
-      <div className="flex flex-col items-center justify-center p-12 text-center border rounded-xl bg-card min-h-[400px]">
-        <BarChart3 className="h-16 w-16 text-muted-foreground opacity-30 mb-4 animate-pulse" />
-        <h3 className="text-xl font-bold tracking-tight">No analytics data available</h3>
-        <p className="text-sm text-muted-foreground max-w-sm mt-2">
+      <div className="flex flex-col items-center justify-center p-12 text-center border border-white/8 bg-[#0B0E13]/60 rounded-3xl min-h-[400px]">
+        <BarChart3 className="h-14 w-14 text-accent opacity-30 mb-4 animate-pulse" />
+        <h3 className="text-lg font-black tracking-tight text-white">No analytics data available</h3>
+        <p className="text-xs text-muted-foreground max-w-xs mt-2 leading-relaxed">
           Submit some reports and assign departments to generate real-time operational reports and trends.
         </p>
       </div>
@@ -57,116 +83,95 @@ export function AnalyticsClient({ data }: AnalyticsClientProps) {
   }
 
   // Fallback color for missing categories
-  const getCategoryColor = (name: string) => CATEGORY_COLORS[name] || "#6366f1"
+  const getCategoryColor = (name: string) => CATEGORY_COLORS[name] || "#3B82F6"
+
+  const tooltipContentStyle = {
+    background: "#0B0E13",
+    border: "1px solid rgba(255,255,255,0.08)",
+    borderRadius: "12px",
+    fontSize: "11px",
+    color: "#FFFFFF",
+    boxShadow: "0 10px 30px rgba(0, 0, 0, 0.5)",
+  }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 max-w-6xl mx-auto px-4 py-6">
       {/* ── Operational Totals ── */}
       <div className="grid gap-4 grid-cols-2 md:grid-cols-6">
-        <Card className="bg-background shadow-sm border">
-          <CardContent className="p-6 flex flex-col items-center text-center justify-center">
-            <span className="text-[10px] uppercase font-bold text-muted-foreground tracking-wider mb-1">Total Reports</span>
-            <div className="text-3xl font-extrabold">{totals.total}</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-background shadow-sm border">
-          <CardContent className="p-6 flex flex-col items-center text-center justify-center">
-            <span className="text-[10px] uppercase font-bold text-neutral-500 tracking-wider mb-1">Pending</span>
-            <div className="text-3xl font-extrabold text-neutral-500">{totals.pending}</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-background shadow-sm border">
-          <CardContent className="p-6 flex flex-col items-center text-center justify-center">
-            <span className="text-[10px] uppercase font-bold text-sky-500 tracking-wider mb-1">Assigned</span>
-            <div className="text-3xl font-extrabold text-sky-500">{totals.assigned}</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-background shadow-sm border">
-          <CardContent className="p-6 flex flex-col items-center text-center justify-center">
-            <span className="text-[10px] uppercase font-bold text-amber-500 tracking-wider mb-1">In Progress</span>
-            <div className="text-3xl font-extrabold text-amber-500">{totals.inProgress}</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-background shadow-sm border">
-          <CardContent className="p-6 flex flex-col items-center text-center justify-center">
-            <span className="text-[10px] uppercase font-bold text-emerald-500 tracking-wider mb-1">Resolved</span>
-            <div className="text-3xl font-extrabold text-emerald-500">{totals.resolved}</div>
-          </CardContent>
-        </Card>
-        <Card className="bg-background shadow-sm border">
-          <CardContent className="p-6 flex flex-col items-center text-center justify-center">
-            <span className="text-[10px] uppercase font-bold text-red-500 tracking-wider mb-1">Dismissed</span>
-            <div className="text-3xl font-extrabold text-red-500">{totals.dismissed}</div>
-          </CardContent>
-        </Card>
+        {[
+          { label: "Total Reports", value: totals.total, color: "text-white" },
+          { label: "Pending", value: totals.pending, color: "text-muted-foreground" },
+          { label: "Assigned", value: totals.assigned, color: "text-blue-400" },
+          { label: "In Progress", value: totals.inProgress, color: "text-amber-400" },
+          { label: "Resolved", value: totals.resolved, color: "text-accent" },
+          { label: "Dismissed", value: totals.dismissed, color: "text-red-400/80" }
+        ].map((card, i) => (
+          <div key={i} className="glass-card rounded-2xl p-5 flex flex-col items-center text-center justify-center border border-white/5">
+            <span className="text-[9px] uppercase font-bold text-muted-foreground tracking-widest mb-1.5">{card.label}</span>
+            <div className={`text-2xl font-black ${card.color} tracking-tighter tabular-nums`}>{card.value}</div>
+          </div>
+        ))}
       </div>
 
       {/* ── Main Charts Grid ── */}
       <div className="grid gap-6 md:grid-cols-12">
-        {/* Trend line: md=12 */}
-        <Card className="md:col-span-12 shadow-sm border bg-card">
-          <CardHeader>
-            <CardTitle className="text-md flex items-center gap-2">
-              <Activity className="h-4 w-4 text-primary" />
+        {/* Submission Volume Trend */}
+        <div className="md:col-span-12 glass-card rounded-3xl p-6 border border-white/5">
+          <div className="space-y-1 mb-6">
+            <h3 className="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
+              <Activity className="h-4 w-4 text-accent" />
               Submission Volume Trend
-            </CardTitle>
-            <CardDescription>Daily reports submitted over the last 30 days</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="h-[280px] w-full">
-              <ResponsiveContainer width="100%" height="100%">
-                <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                  <defs>
-                    <linearGradient id="colorTrend" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.2} />
-                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
-                  <XAxis dataKey="date" tickLine={false} style={{ fontSize: 10 }} />
-                  <YAxis tickLine={false} allowDecimals={false} style={{ fontSize: 10 }} />
-                  <Tooltip
-                    contentStyle={{
-                      background: "hsl(var(--popover))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                      fontSize: 12,
-                    }}
-                  />
-                  <Area
-                    type="monotone"
-                    dataKey="count"
-                    stroke="hsl(var(--primary))"
-                    strokeWidth={2}
-                    fillOpacity={1}
-                    fill="url(#colorTrend)"
-                  />
-                </AreaChart>
-              </ResponsiveContainer>
-            </div>
-          </CardContent>
-        </Card>
+            </h3>
+            <p className="text-[11px] text-muted-foreground">Daily reports submitted over the last 30 days</p>
+          </div>
+          
+          <div className="h-[280px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -25, bottom: 0 }}>
+                <defs>
+                  <linearGradient id="colorTrend" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#00C896" stopOpacity={0.25} />
+                    <stop offset="95%" stopColor="#00C896" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.03)" />
+                <XAxis dataKey="date" tickLine={false} stroke="rgba(255,255,255,0.3)" style={{ fontSize: 9, fontWeight: "semibold" }} />
+                <YAxis tickLine={false} allowDecimals={false} stroke="rgba(255,255,255,0.3)" style={{ fontSize: 9, fontWeight: "semibold" }} />
+                <Tooltip contentStyle={tooltipContentStyle} />
+                <Area
+                  type="monotone"
+                  dataKey="count"
+                  stroke="#00C896"
+                  strokeWidth={2.5}
+                  fillOpacity={1}
+                  fill="url(#colorTrend)"
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
 
-        {/* Category distribution (pie): md=6 */}
-        <Card className="md:col-span-6 shadow-sm border bg-card">
-          <CardHeader>
-            <CardTitle className="text-md flex items-center gap-2">
-              <FileText className="h-4 w-4 text-primary" />
+        {/* Category breakdown (pie) */}
+        <div className="md:col-span-6 glass-card rounded-3xl p-6 border border-white/5 flex flex-col justify-between">
+          <div className="space-y-1 mb-4">
+            <h3 className="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
+              <FileText className="h-4 w-4 text-accent" />
               Category Breakdown
-            </CardTitle>
-            <CardDescription>Distribution of issues by category type</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="h-[200px] w-[200px] shrink-0">
+            </h3>
+            <p className="text-[11px] text-muted-foreground">Distribution of issues by category type</p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div className="h-[180px] w-[180px] shrink-0">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={categoryData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={4}
+                    innerRadius={55}
+                    outerRadius={75}
+                    paddingAngle={3}
                     dataKey="count"
                     nameKey="category"
                   >
@@ -174,124 +179,105 @@ export function AnalyticsClient({ data }: AnalyticsClientProps) {
                       <Cell key={`cell-${index}`} fill={getCategoryColor(entry.category)} />
                     ))}
                   </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      background: "white",
-                      border: "1px solid #e5e7eb",
-                      borderRadius: "8px",
-                      fontSize: 11,
-                    }}
-                  />
+                  <Tooltip contentStyle={tooltipContentStyle} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
+            
             <div className="flex flex-wrap gap-x-4 gap-y-2 max-w-sm">
               {categoryData.map((entry) => (
-                <div key={entry.category} className="flex items-center gap-1.5 text-xs">
+                <div key={entry.category} className="flex items-center gap-1.5 text-[11px] font-bold">
                   <span
-                    className="h-2.5 w-2.5 rounded-full shrink-0"
-                    style={{ backgroundColor: getCategoryColor(entry.category) }}
+                    className="h-2 w-2 rounded-full shrink-0"
+                    style={{ backgroundColor: getCategoryColor(entry.category), boxShadow: `0 0 6px ${getCategoryColor(entry.category)}` }}
                   />
-                  <span className="text-muted-foreground font-medium">{entry.category}:</span>
-                  <span className="font-bold text-foreground">{entry.count}</span>
+                  <span className="text-muted-foreground">{entry.category}:</span>
+                  <span className="text-white font-mono">{entry.count}</span>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        {/* Severity Distribution: md=6 */}
-        <Card className="md:col-span-6 shadow-sm border bg-card">
-          <CardHeader>
-            <CardTitle className="text-md flex items-center gap-2">
-              <ShieldAlert className="h-4 w-4 text-primary" />
+        {/* Severity Breakdown */}
+        <div className="md:col-span-6 glass-card rounded-3xl p-6 border border-white/5 flex flex-col justify-between">
+          <div className="space-y-1 mb-4">
+            <h3 className="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
+              <ShieldAlert className="h-4 w-4 text-accent" />
               Severity Breakdown
-            </CardTitle>
-            <CardDescription>Issue counts grouped by urgency level</CardDescription>
-          </CardHeader>
-          <CardContent className="flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="h-[200px] w-[200px] shrink-0">
+            </h3>
+            <p className="text-[11px] text-muted-foreground">Issue counts grouped by urgency level</p>
+          </div>
+
+          <div className="flex flex-col sm:flex-row items-center justify-between gap-6">
+            <div className="h-[180px] w-[180px] shrink-0">
               <ResponsiveContainer width="100%" height="100%">
                 <PieChart>
                   <Pie
                     data={severityData}
                     cx="50%"
                     cy="50%"
-                    innerRadius={60}
-                    outerRadius={80}
-                    paddingAngle={4}
+                    innerRadius={55}
+                    outerRadius={75}
+                    paddingAngle={3}
                     dataKey="count"
                     nameKey="severity"
                   >
                     {severityData.map((entry, index) => (
                       <Cell
                         key={`cell-${index}`}
-                        fill={SEVERITY_COLORS[entry.severity] || "#6366f1"}
+                        fill={SEVERITY_COLORS[entry.severity] || "#3B82F6"}
                       />
                     ))}
                   </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      background: "white",
-                      border: "1px solid #e5e7eb",
-                      borderRadius: "8px",
-                      fontSize: 11,
-                    }}
-                  />
+                  <Tooltip contentStyle={tooltipContentStyle} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
+            
             <div className="flex flex-col gap-2 min-w-28">
               {severityData.map((entry) => (
-                <div key={entry.severity} className="flex items-center gap-1.5 text-xs">
+                <div key={entry.severity} className="flex items-center gap-1.5 text-[11px] font-bold">
                   <span
-                    className="h-2.5 w-2.5 rounded-full shrink-0"
-                    style={{ backgroundColor: SEVERITY_COLORS[entry.severity] }}
+                    className="h-2 w-2 rounded-full shrink-0"
+                    style={{ backgroundColor: SEVERITY_COLORS[entry.severity], boxShadow: `0 0 6px ${SEVERITY_COLORS[entry.severity]}` }}
                   />
-                  <span className="text-muted-foreground font-medium">{entry.severity}:</span>
-                  <span className="font-bold text-foreground">{entry.count}</span>
+                  <span className="text-muted-foreground">{entry.severity}:</span>
+                  <span className="text-white font-mono">{entry.count}</span>
                 </div>
               ))}
             </div>
-          </CardContent>
-        </Card>
+          </div>
+        </div>
 
-        {/* Resolution time by department: md=12 */}
-        <Card className="md:col-span-12 shadow-sm border bg-card">
-          <CardHeader>
-            <CardTitle className="text-md flex items-center gap-2">
-              <Clock className="h-4 w-4 text-primary" />
+        {/* Department Resolution Efficiency */}
+        <div className="md:col-span-12 glass-card rounded-3xl p-6 border border-white/5">
+          <div className="space-y-1 mb-6">
+            <h3 className="text-sm font-black uppercase tracking-wider text-white flex items-center gap-2">
+              <Clock className="h-4 w-4 text-accent" />
               Department Resolution Efficiency
-            </CardTitle>
-            <CardDescription>Average resolution time in hours per department</CardDescription>
-          </CardHeader>
-          <CardContent>
-            {departmentData.length === 0 ? (
-              <div className="h-[200px] flex items-center justify-center text-center text-xs text-muted-foreground border border-dashed rounded-lg">
-                No resolved issues with department assignments found yet to measure resolution efficiency.
-              </div>
-            ) : (
-              <div className="h-[250px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={departmentData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
-                    <CartesianGrid strokeDasharray="3 3" opacity={0.1} />
-                    <XAxis dataKey="department" tickLine={false} style={{ fontSize: 9 }} />
-                    <YAxis tickLine={false} label={{ value: "Hours", angle: -90, position: "insideLeft", fontSize: 10 }} style={{ fontSize: 10 }} />
-                    <Tooltip
-                      contentStyle={{
-                        background: "white",
-                        border: "1px solid #e5e7eb",
-                        borderRadius: "8px",
-                        fontSize: 11,
-                      }}
-                    />
-                    <Bar dataKey="avgResolutionHours" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Avg Resolution (Hours)" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+            </h3>
+            <p className="text-[11px] text-muted-foreground">Average resolution time in hours per department</p>
+          </div>
+
+          {departmentData.length === 0 ? (
+            <div className="h-[200px] flex items-center justify-center text-center text-xs font-bold text-muted-foreground border border-dashed border-white/10 rounded-2xl">
+              No resolved issues with department assignments found yet to measure resolution efficiency.
+            </div>
+          ) : (
+            <div className="h-[250px] w-full">
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={departmentData} margin={{ top: 10, right: 10, left: -25, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="rgba(255,255,255,0.03)" />
+                  <XAxis dataKey="department" tickLine={false} stroke="rgba(255,255,255,0.3)" style={{ fontSize: 8, fontWeight: "semibold" }} />
+                  <YAxis tickLine={false} stroke="rgba(255,255,255,0.3)" label={{ value: "Hours", angle: -90, position: "insideLeft", fontSize: 9, fill: "rgba(255,255,255,0.3)", offset: 10 }} style={{ fontSize: 9, fontWeight: "semibold" }} />
+                  <Tooltip contentStyle={tooltipContentStyle} />
+                  <Bar dataKey="avgResolutionHours" fill="#00C896" radius={[6, 6, 0, 0]} name="Avg Resolution (Hours)" />
+                </BarChart>
+              </ResponsiveContainer>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
