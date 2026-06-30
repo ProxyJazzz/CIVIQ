@@ -20,15 +20,9 @@ export type Report = Database['public']['Tables']['reports']['Row']
 export type ReportInsert = Database['public']['Tables']['reports']['Insert']
 
 export interface PipelineError {
-  code:
-    | 'EMPTY_IMAGE'
-    | 'INVALID_IMAGE_TYPE'
-    | 'IMAGE_TOO_LARGE'
-    | 'IMAGE_UPLOAD_FAILED'
-    | 'GEMINI_ANALYSIS_FAILED'
-    | 'INVALID_REPORT_INPUT'
-    | 'REPORT_SAVE_FAILED'
+  code: string
   message: string
+  stack?: string
 }
 
 export type PipelineResult<T> =
