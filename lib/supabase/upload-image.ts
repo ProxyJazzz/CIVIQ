@@ -92,7 +92,12 @@ export async function uploadImage(formData: FormData): Promise<PipelineResult<st
     const path = `${user.id}/${filename}`
 
     console.log(`[Upload Image] Upload started to bucket="${bucketName}", path="${path}"`);
-    const { error: uploadError } = await supabase.storage.from(bucketName).upload(path, file, {
+    
+    // Convert Web File object to Node.js Buffer for storage upload compatibility
+    const arrayBuffer = await file.arrayBuffer()
+    const fileBuffer = Buffer.from(arrayBuffer)
+
+    const { error: uploadError } = await supabase.storage.from(bucketName).upload(path, fileBuffer, {
       cacheControl: '3600',
       contentType: file.type,
       upsert: false,
@@ -135,7 +140,6 @@ export async function uploadImage(formData: FormData): Promise<PipelineResult<st
       error: {
         code: 'UNCAUGHT_UPLOAD_EXCEPTION',
         message: error instanceof Error ? error.message : 'An unexpected exception occurred during file upload.',
-        stack: error instanceof Error ? error.stack : undefined,
       },
     }
   }
