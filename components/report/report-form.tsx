@@ -4,16 +4,18 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { toast } from 'sonner'
-import { FileWarning, Loader2, ArrowRight } from 'lucide-react'
+import { FileWarning, Loader2, ArrowRight, ArrowLeft, Image as ImageIcon, Sparkles, CheckCircle2, Clipboard } from 'lucide-react'
+import dynamic from 'next/dynamic'
+import Image from 'next/image'
 
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Textarea } from '@/components/ui/textarea'
+import { Button } from '@/components/ui/button'
 import { AiPreviewCard } from '@/components/report/ai-preview-card'
 import { ImageUpload } from '@/components/report/image-upload'
-import { LocationPicker } from '@/components/report/location-picker'
 import { SubmitButton } from '@/components/report/submit-button'
 import { useReport } from '@/hooks/use-report'
 import { detectDuplicateReports, type DuplicateMatch } from '@/lib/reports/detect-duplicates'
@@ -21,11 +23,23 @@ import { reportFormInputSchema, reportCategories, reportSeverities } from '@/sch
 import { cn } from '@/lib/utils'
 import type { ReportAnalysis, ReportFormInputValues } from '@/types/report'
 
+// Dynamically import LocationPicker to prevent SSR issues with Leaflet
+const LocationPicker = dynamic(
+  () => import('@/components/report/location-picker').then((mod) => mod.LocationPicker),
+  { ssr: false }
+)
+
 interface ReportFormProps {
   userId: string
 }
 
-const STEPS = ['Upload Image', 'Fill Details', 'AI Analysis', 'Submit']
+const WIZARD_STEPS = [
+  { id: 1, label: 'Upload Photo' },
+  { id: 2, label: 'AI Classification' },
+  { id: 3, label: 'Fill Details' },
+  { id: 4, label: 'Pin Location' },
+  { id: 5, label: 'Final Review' },
+]
 
 export function ReportForm({ userId }: ReportFormProps) {
   const router = useRouter()
@@ -41,6 +55,7 @@ export function ReportForm({ userId }: ReportFormProps) {
     reset,
   } = useReport()
 
+  const [wizardStep, setWizardStep] = useState(1)
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [previewUrl, setPreviewUrl] = useState<string | null>(null)
   const [imageError, setImageError] = useState<string | null>(null)
@@ -54,6 +69,7 @@ export function ReportForm({ userId }: ReportFormProps) {
     handleSubmit,
     watch,
     setValue,
+    trigger,
     reset: resetForm,
     formState: { errors },
   } = useForm<ReportFormInputValues>({
@@ -72,28 +88,28 @@ export function ReportForm({ userId }: ReportFormProps) {
     },
   })
 
-  const locationValue = {
-    latitude: watch('latitude') ?? '',
-    longitude: watch('longitude') ?? '',
-    address: watch('address') ?? '',
-  }
+  const formValues = watch()
 
-  const titleValue = watch('title')
-  const descriptionValue = watch('description')
+  const locationValue = {
+    latitude: formValues.latitude ?? '',
+    longitude: formValues.longitude ?? '',
+    address: formValues.address ?? '',
+  }
 
   const [duplicates, setDuplicates] = useState<DuplicateMatch[]>([])
   const [checkingDuplicates, setCheckingDuplicates] = useState(false)
 
+  // Scan duplicates when coords or details change
   useEffect(() => {
-    const lat = parseFloat(locationValue.latitude)
-    const lng = parseFloat(locationValue.longitude)
+    const lat = parseFloat(formValues.latitude)
+    const lng = parseFloat(formValues.longitude)
     if (
       isNaN(lat) ||
       isNaN(lng) ||
-      !titleValue ||
-      titleValue.length < 5 ||
-      !descriptionValue ||
-      descriptionValue.length < 15
+      !formValues.title ||
+      formValues.title.length < 5 ||
+      !formValues.description ||
+      formValues.description.length < 15
     ) {
       setDuplicates([])
       return
@@ -103,8 +119,8 @@ export function ReportForm({ userId }: ReportFormProps) {
       setCheckingDuplicates(true)
       try {
         const matches = await detectDuplicateReports(
-          titleValue,
-          descriptionValue,
+          formValues.title,
+          formValues.description,
           lat,
           lng,
           0.7,
@@ -119,17 +135,9 @@ export function ReportForm({ userId }: ReportFormProps) {
     }, 800)
 
     return () => clearTimeout(timer)
-  }, [titleValue, descriptionValue, locationValue.latitude, locationValue.longitude])
+  }, [formValues.title, formValues.description, formValues.latitude, formValues.longitude])
 
-  // Step progress indicator
-  const currentStep = (() => {
-    if (success) return 3
-    if (loading) return 2
-    if (imageFile) return 1
-    return 0
-  })()
-
-  // Revoke preview URL memory leaks
+  // Cleanup preview URL memory leaks
   useEffect(() => {
     const prev = prevPreviewUrl.current
     return () => {
@@ -191,6 +199,9 @@ export function ReportForm({ userId }: ReportFormProps) {
             setValue('summary', res.analysis.summary)
             setValue('tags', res.analysis.tags.join(', '))
             toast.success('AI classification complete!')
+            
+            // Advance to AI view step
+            setWizardStep(2)
           }
         } catch (err) {
           toast.dismiss(analysisLoaderToast)
@@ -212,6 +223,38 @@ export function ReportForm({ userId }: ReportFormProps) {
     },
     [setValue],
   )
+
+  // Step boundary transitions
+  const handleNextStep = async () => {
+    if (wizardStep === 1) {
+      if (!localImageUrl) {
+        setImageError('Please select a photo and wait for processing.')
+        return
+      }
+      setWizardStep(2)
+    } else if (wizardStep === 2) {
+      setWizardStep(3)
+    } else if (wizardStep === 3) {
+      const isTitleValid = await trigger('title')
+      const isDescValid = await trigger('description')
+      if (isTitleValid && isDescValid) {
+        setWizardStep(4)
+      }
+    } else if (wizardStep === 4) {
+      const isLatValid = await trigger('latitude')
+      const isLngValid = await trigger('longitude')
+      const isAddrValid = await trigger('address')
+      if (isLatValid && isLngValid && isAddrValid) {
+        setWizardStep(5)
+      }
+    }
+  }
+
+  const handleBackStep = () => {
+    if (wizardStep > 1) {
+      setWizardStep(wizardStep - 1)
+    }
+  }
 
   const onSubmit = useCallback(
     async (values: ReportFormInputValues): Promise<void> => {
@@ -254,6 +297,7 @@ export function ReportForm({ userId }: ReportFormProps) {
     setImageError(null)
     setAnalysis(null)
     setLocalImageUrl(null)
+    setWizardStep(1)
   }
 
   return (
@@ -265,250 +309,347 @@ export function ReportForm({ userId }: ReportFormProps) {
     >
       {/* ─── Header ─────────────────────────────────────────────── */}
       <div className="space-y-1">
-        <h1 className="text-3xl font-bold tracking-tight">Report Community Issue</h1>
+        <h1 className="text-3xl font-black tracking-tight text-white">Report Civic Incident</h1>
         <p className="text-sm text-muted-foreground">
-          Upload a photo — Gemini Vision will classify, summary, and route the issue.
+          Guided community reporting powered by Gemini Vision intelligence.
         </p>
       </div>
 
-      {/* ─── Progress Steps ─────────────────────────────────────── */}
-      <div className="flex items-center gap-0">
-        {STEPS.map((step, i) => (
-          <div key={step} className="flex flex-1 items-center">
-            <div className="flex flex-col items-center gap-1">
-              <div
-                className={cn(
-                  'flex h-7 w-7 items-center justify-center rounded-full text-xs font-bold transition-all duration-300',
-                  i <= currentStep
-                    ? 'bg-blue-600 text-white shadow-lg shadow-blue-900/40'
-                    : 'bg-white/10 text-muted-foreground',
-                )}
-              >
-                {i + 1}
-              </div>
-              <span
-                className={cn(
-                  'hidden text-[10px] transition-colors sm:block',
-                  i <= currentStep ? 'text-blue-400' : 'text-muted-foreground/50',
-                )}
-              >
-                {step}
-              </span>
+      {/* ─── Wizard Step Progress ─── */}
+      <div className="flex items-center gap-1.5 p-1 glass-panel rounded-full overflow-x-auto scrollbar-none border border-white/5">
+        {WIZARD_STEPS.map((step) => {
+          const isActive = wizardStep === step.id
+          const isCompleted = wizardStep > step.id
+          return (
+            <div
+              key={step.id}
+              className={cn(
+                'flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-wider transition-all duration-300',
+                isActive
+                  ? 'bg-accent text-accent-foreground font-black shadow-lg shadow-accent/20'
+                  : isCompleted
+                    ? 'text-emerald-400 bg-emerald-500/10'
+                    : 'text-muted-foreground/40 hover:text-muted-foreground/75'
+              )}
+            >
+              <span className={cn('h-1.5 w-1.5 rounded-full', isActive ? 'bg-white' : isCompleted ? 'bg-emerald-400' : 'bg-white/20')} />
+              <span className="hidden sm:inline">{step.label}</span>
+              <span className="sm:hidden">{step.id}</span>
             </div>
-            {i < STEPS.length - 1 && (
-              <div
-                className={cn(
-                  'mb-4 h-px flex-1 transition-colors duration-500',
-                  i < currentStep ? 'bg-blue-600/60' : 'bg-white/10',
-                )}
-              />
-            )}
-          </div>
-        ))}
+          )
+        })}
       </div>
 
-      {/* ─── Main Form ──────────────────────────────────────────── */}
+      {/* ─── Main Wizard Form ───────────────────────────────────── */}
       <form onSubmit={handleSubmit(onSubmit)} noValidate>
-        <div className="grid gap-6 lg:grid-cols-[1fr_380px]">
-          {/* Left column */}
+        <div className="grid gap-6 lg:grid-cols-[1fr_360px]">
+          {/* Main step container */}
           <div className="space-y-5">
-            {/* Image Upload Section */}
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur">
-              <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                Issue Photo
-              </p>
-              <ImageUpload
-                value={imageFile}
-                onChange={handleImageChange}
-                previewUrl={previewUrl}
-                disabled={loading || uploading || analyzing || success}
-                error={imageError ?? undefined}
-              />
-              {uploading && (
-                <div className="mt-3 flex items-center gap-2 text-xs text-blue-400">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  Uploading image to Supabase Storage...
-                </div>
-              )}
-              {analyzing && (
-                <div className="mt-3 flex items-center gap-2 text-xs text-accent">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  Analyzing image with Gemini Vision AI...
-                </div>
-              )}
-            </div>
+            <AnimatePresence mode="wait">
+              {/* STEP 1: UPLOAD PHOTO */}
+              {wizardStep === 1 && (
+                <motion.div
+                  key="step1"
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 10 }}
+                  className="rounded-3xl border border-white/8 bg-white/5 p-6 backdrop-blur space-y-4"
+                >
+                  <div className="flex items-center gap-2">
+                    <ImageIcon className="h-5 w-5 text-accent" />
+                    <h2 className="text-md font-extrabold uppercase tracking-wider text-white">Upload Incident Image</h2>
+                  </div>
+                  <p className="text-xs text-muted-foreground leading-relaxed">
+                    Provide a clear snapshot of the civic concern. CIVIQ AI works best with localized, high-resolution media.
+                  </p>
 
-            {/* Details Section */}
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur">
-              <p className="mb-4 text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                Issue Details
-              </p>
-
-              <div className="space-y-4">
-                {/* Title */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="title" className={cn('text-sm', errors.title && 'text-red-400')}>
-                    Title
-                  </Label>
-                  <Input
-                    id="title"
-                    placeholder="Large pothole near main gate"
-                    disabled={loading || success}
-                    aria-invalid={!!errors.title}
-                    className={cn(
-                      'bg-white/5',
-                      errors.title && 'border-red-500/50 focus-visible:ring-red-500/30',
-                    )}
-                    {...register('title')}
+                  <ImageUpload
+                    value={imageFile}
+                    onChange={handleImageChange}
+                    previewUrl={previewUrl}
+                    disabled={loading || uploading || analyzing || success}
+                    error={imageError ?? undefined}
                   />
-                  {errors.title && (
-                    <p className="flex items-center gap-1 text-xs text-red-400">
-                      <FileWarning className="h-3 w-3" />
-                      {errors.title.message}
-                    </p>
-                  )}
-                </div>
 
-                {/* Description */}
-                <div className="space-y-1.5">
-                  <Label
-                    htmlFor="description"
-                    className={cn('text-sm', errors.description && 'text-red-400')}
-                  >
-                    Description
-                  </Label>
-                  <Textarea
-                    id="description"
-                    placeholder="Describe what happened, nearby landmarks, and urgency."
-                    className={cn(
-                      'min-h-28 resize-none bg-white/5',
-                      errors.description && 'border-red-500/50 focus-visible:ring-red-500/30',
-                    )}
+                  {uploading && (
+                    <div className="flex items-center gap-2 text-xs text-blue-400 font-semibold">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Uploading image to secure storage...
+                    </div>
+                  )}
+                  {analyzing && (
+                    <div className="flex items-center gap-2 text-xs text-accent font-semibold">
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      Analyzing content with Gemini Vision AI...
+                    </div>
+                  )}
+                </motion.div>
+              )}
+
+              {/* STEP 2: AI ANALYSIS PREVIEW */}
+              {wizardStep === 2 && (
+                <motion.div
+                  key="step2"
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 10 }}
+                  className="rounded-3xl border border-white/8 bg-white/5 p-6 backdrop-blur space-y-4"
+                >
+                  <div className="flex items-center gap-2">
+                    <Sparkles className="h-5 w-5 text-accent animate-pulse" />
+                    <h2 className="text-md font-extrabold uppercase tracking-wider text-white">AI Classification Checkpoints</h2>
+                  </div>
+
+                  {/* Checklist style loader indicators */}
+                  <div className="space-y-3 p-4 rounded-2xl bg-black/30 border border-white/5">
+                    <div className="flex items-center gap-2 text-xs text-emerald-400 font-semibold">
+                      <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
+                      Image Uploaded Successfully
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-emerald-400 font-semibold">
+                      <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
+                      Gemini Vision API Executed
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-emerald-400 font-semibold">
+                      <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
+                      Category & Severity Resolved
+                    </div>
+                    <div className="flex items-center gap-2 text-xs text-emerald-400 font-semibold">
+                      <CheckCircle2 className="h-4 w-4 shrink-0 text-emerald-400" />
+                      Operations Summary Formulated
+                    </div>
+                  </div>
+
+                  {/* Editable AI Fields Block */}
+                  <div className="space-y-4 pt-2">
+                    <p className="text-xs font-semibold uppercase tracking-widest text-blue-400">
+                      AI Generated Details (Confirm or Modify)
+                    </p>
+
+                    <div className="grid gap-4 sm:grid-cols-2">
+                      <div className="space-y-1.5">
+                        <Label htmlFor="category" className="text-xs text-muted-foreground font-semibold">Category</Label>
+                        <select
+                          id="category"
+                          disabled={loading || success}
+                          className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/20"
+                          {...register('category')}
+                        >
+                          {reportCategories.map((cat) => (
+                            <option key={cat} value={cat} className="bg-[#0B0E13]">
+                              {cat}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <Label htmlFor="severity" className="text-xs text-muted-foreground font-semibold">Severity</Label>
+                        <select
+                          id="severity"
+                          disabled={loading || success}
+                          className="w-full bg-white/5 border border-white/10 rounded-xl p-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-accent/20"
+                          {...register('severity')}
+                        >
+                          {reportSeverities.map((sev) => (
+                            <option key={sev} value={sev} className="bg-[#0B0E13]">
+                              {sev}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="department" className="text-xs text-muted-foreground font-semibold">Responsible Department</Label>
+                      <Input id="department" disabled={loading || success} className="bg-white/5 rounded-xl" {...register('department')} />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="summary" className="text-xs text-muted-foreground font-semibold">Operations Summary</Label>
+                      <Textarea id="summary" disabled={loading || success} className="min-h-16 bg-white/5 rounded-xl resize-none" {...register('summary')} />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label htmlFor="tags" className="text-xs text-muted-foreground font-semibold">Keywords / Tags (comma-separated)</Label>
+                      <Input id="tags" disabled={loading || success} className="bg-white/5 rounded-xl" {...register('tags')} />
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* STEP 3: INCIDENT DETAILS */}
+              {wizardStep === 3 && (
+                <motion.div
+                  key="step3"
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 10 }}
+                  className="rounded-3xl border border-white/8 bg-white/5 p-6 backdrop-blur space-y-4"
+                >
+                  <div className="flex items-center gap-2">
+                    <Clipboard className="h-5 w-5 text-accent" />
+                    <h2 className="text-md font-extrabold uppercase tracking-wider text-white">Fill Incident Details</h2>
+                  </div>
+
+                  <div className="space-y-4">
+                    {/* Title */}
+                    <div className="space-y-1.5">
+                      <Label htmlFor="title" className={cn('text-xs font-semibold', errors.title && 'text-red-400')}>Title</Label>
+                      <Input
+                        id="title"
+                        placeholder="Large pothole near main gate"
+                        disabled={loading || success}
+                        className={cn('bg-white/5 rounded-xl', errors.title && 'border-red-500/50')}
+                        {...register('title')}
+                      />
+                      {errors.title && (
+                        <p className="flex items-center gap-1 text-xs text-red-400">
+                          <FileWarning className="h-3 w-3" />
+                          {errors.title.message}
+                        </p>
+                      )}
+                    </div>
+
+                    {/* Description */}
+                    <div className="space-y-1.5">
+                      <Label htmlFor="description" className={cn('text-xs font-semibold', errors.description && 'text-red-400')}>Description</Label>
+                      <Textarea
+                        id="description"
+                        placeholder="Provide details about the issue size, context, and immediate impact..."
+                        disabled={loading || success}
+                        className={cn('min-h-32 bg-white/5 rounded-2xl resize-none', errors.description && 'border-red-500/50')}
+                        {...register('description')}
+                      />
+                      {errors.description && (
+                        <p className="flex items-center gap-1 text-xs text-red-400">
+                          <FileWarning className="h-3 w-3" />
+                          {errors.description.message}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+
+              {/* STEP 4: GEOLOCATION PIN LOCATION */}
+              {wizardStep === 4 && (
+                <motion.div
+                  key="step4"
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 10 }}
+                  className="rounded-3xl border border-white/8 bg-white/5 p-6 backdrop-blur space-y-4"
+                >
+                  <LocationPicker
+                    value={locationValue}
+                    onChange={handleLocationChange}
+                    errors={{
+                      latitude: errors.latitude?.message,
+                      longitude: errors.longitude?.message,
+                      address: errors.address?.message,
+                    }}
                     disabled={loading || success}
-                    aria-invalid={!!errors.description}
-                    {...register('description')}
                   />
-                  {errors.description && (
-                    <p className="flex items-center gap-1 text-xs text-red-400">
-                      <FileWarning className="h-3 w-3" />
-                      {errors.description.message}
-                    </p>
-                  )}
-                </div>
-              </div>
-            </div>
+                </motion.div>
+              )}
 
-            {/* AI Editable Classifications (Only displays when analysis is present) */}
-            {analysis && (
-              <motion.div
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="rounded-2xl border border-blue-500/20 bg-blue-500/5 p-5 backdrop-blur space-y-4"
+              {/* STEP 5: FINAL REVIEW */}
+              {wizardStep === 5 && (
+                <motion.div
+                  key="step5"
+                  initial={{ opacity: 0, x: -10 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 10 }}
+                  className="rounded-3xl border border-white/8 bg-white/5 p-6 backdrop-blur space-y-4"
+                >
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="h-5 w-5 text-accent" />
+                    <h2 className="text-md font-extrabold uppercase tracking-wider text-white">Final Review & Confirmation</h2>
+                  </div>
+
+                  <div className="space-y-4 divide-y divide-white/5 text-sm">
+                    {/* Image Preview inside review */}
+                    {previewUrl && (
+                      <div className="relative aspect-[16/9] w-full rounded-2xl overflow-hidden border border-white/10 mb-2">
+                        <Image src={previewUrl} alt="Review incident" fill className="object-cover" unoptimized />
+                      </div>
+                    )}
+
+                    <div className="pt-3">
+                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-black">Title</p>
+                      <p className="text-white font-bold mt-0.5">{formValues.title}</p>
+                    </div>
+
+                    <div className="pt-3">
+                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-black">Description</p>
+                      <p className="text-muted-foreground mt-0.5 leading-relaxed text-xs">{formValues.description}</p>
+                    </div>
+
+                    <div className="pt-3 grid grid-cols-2 gap-3">
+                      <div>
+                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-black">Category</p>
+                        <p className="text-white font-semibold mt-0.5">{formValues.category}</p>
+                      </div>
+                      <div>
+                        <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-black">Severity</p>
+                        <p className="text-white font-semibold mt-0.5">{formValues.severity}</p>
+                      </div>
+                    </div>
+
+                    <div className="pt-3">
+                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-black">Assigned Department</p>
+                      <p className="text-white font-semibold mt-0.5">{formValues.department || 'Other'}</p>
+                    </div>
+
+                    <div className="pt-3">
+                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-black">AI Summary</p>
+                      <p className="text-muted-foreground mt-0.5 text-xs">{formValues.summary}</p>
+                    </div>
+
+                    <div className="pt-3">
+                      <p className="text-[10px] uppercase tracking-widest text-muted-foreground font-black">Pin Location</p>
+                      <p className="text-white mt-0.5 text-xs">{formValues.address}</p>
+                    </div>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Wizard Navigation Footer Button Panel */}
+            <div className="flex justify-between items-center gap-3 pt-2">
+              <Button
+                type="button"
+                variant="ghost"
+                onClick={handleBackStep}
+                disabled={wizardStep === 1 || loading || success}
+                className="rounded-full text-xs gap-1.5 hover:bg-white/5 text-muted-foreground hover:text-white"
               >
-                <p className="text-xs font-semibold uppercase tracking-widest text-blue-400">
-                  AI Classification Review & Corrections
-                </p>
+                <ArrowLeft className="h-3.5 w-3.5" />
+                Back
+              </Button>
 
-                <div className="grid gap-4 sm:grid-cols-2">
-                  {/* Category */}
-                  <div className="space-y-1.5">
-                    <Label htmlFor="category" className="text-xs text-muted-foreground font-semibold">
-                      Category
-                    </Label>
-                    <select
-                      id="category"
-                      disabled={loading || success}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg p-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                      {...register('category')}
-                    >
-                      {reportCategories.map((cat) => (
-                        <option key={cat} value={cat} className="bg-[#0B0E13]">
-                          {cat}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  {/* Severity */}
-                  <div className="space-y-1.5">
-                    <Label htmlFor="severity" className="text-xs text-muted-foreground font-semibold">
-                      Severity
-                    </Label>
-                    <select
-                      id="severity"
-                      disabled={loading || success}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg p-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-blue-500/20"
-                      {...register('severity')}
-                    >
-                      {reportSeverities.map((sev) => (
-                        <option key={sev} value={sev} className="bg-[#0B0E13]">
-                          {sev}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                </div>
-
-                {/* Department */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="department" className="text-xs text-muted-foreground font-semibold">
-                    Responsible Department
-                  </Label>
-                  <Input
-                    id="department"
-                    placeholder="e.g. Public Works"
-                    disabled={loading || success}
-                    className="bg-white/5"
-                    {...register('department')}
-                  />
-                </div>
-
-                {/* AI Summary */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="summary" className="text-xs text-muted-foreground font-semibold">
-                    Operations Summary
-                  </Label>
-                  <Textarea
-                    id="summary"
-                    placeholder="Concise summary of the issue."
-                    disabled={loading || success}
-                    className="min-h-16 bg-white/5 resize-none"
-                    {...register('summary')}
-                  />
-                </div>
-
-                {/* Keywords / Tags */}
-                <div className="space-y-1.5">
-                  <Label htmlFor="tags" className="text-xs text-muted-foreground font-semibold">
-                    Keywords (comma-separated)
-                  </Label>
-                  <Input
-                    id="tags"
-                    placeholder="pothole, hazard, safety"
-                    disabled={loading || success}
-                    className="bg-white/5"
-                    {...register('tags')}
-                  />
-                </div>
-              </motion.div>
-            )}
-
-            {/* Location Section */}
-            <div className="rounded-2xl border border-white/10 bg-white/5 p-5 backdrop-blur">
-              <LocationPicker
-                value={locationValue}
-                onChange={handleLocationChange}
-                errors={{
-                  latitude: errors.latitude?.message,
-                  longitude: errors.longitude?.message,
-                  address: errors.address?.message,
-                }}
-                disabled={loading || success}
-              />
+              {wizardStep < 5 ? (
+                <Button
+                  type="button"
+                  onClick={handleNextStep}
+                  disabled={loading || success}
+                  className="rounded-full text-xs gap-1.5 bg-accent hover:bg-accent/90 text-accent-foreground font-bold"
+                >
+                  Next
+                  <ArrowRight className="h-3.5 w-3.5" />
+                </Button>
+              ) : (
+                <SubmitButton
+                  loading={loading}
+                  success={success}
+                  disabled={loading || success}
+                />
+              )}
             </div>
           </div>
 
-          {/* Right column */}
+          {/* Right column sidebar */}
           <div className="flex flex-col gap-5">
             <AiPreviewCard analysis={analysis} loading={analyzing} />
 
@@ -587,26 +728,18 @@ export function ReportForm({ userId }: ReportFormProps) {
                 <p className="mt-1 text-xs text-muted-foreground">{error}</p>
               </motion.div>
             )}
+
+            {/* Submit helper links */}
+            {success && (
+              <button
+                type="button"
+                onClick={handleReset}
+                className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground self-start"
+              >
+                Submit another report
+              </button>
+            )}
           </div>
-        </div>
-
-        {/* ─── Submit Row ─────────────────────────────────────── */}
-        <div className="mt-6 flex flex-col-reverse items-center gap-3 sm:flex-row sm:justify-end">
-          {success && (
-            <button
-              type="button"
-              onClick={handleReset}
-              className="text-xs text-muted-foreground underline underline-offset-4 hover:text-foreground"
-            >
-              Submit another report
-            </button>
-          )}
-
-          <SubmitButton
-            loading={loading}
-            success={success}
-            disabled={loading || uploading || analyzing || success}
-          />
         </div>
       </form>
     </motion.div>
